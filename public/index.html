@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Call</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    .container { text-align: center; max-width: 800px; width: 100%; padding: 20px; }
+
+    h1 { font-size: 24px; margin-bottom: 20px; }
+
+    .videos { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+    video { width: 320px; height: 240px; background: #0f0f23; border-radius: 12px; object-fit: cover; }
+    #localVideo { border: 3px solid #4ade80; }
+    #remoteVideo { border: 3px solid #60a5fa; }
+
+    .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+
+    input { padding: 12px 16px; border-radius: 8px; border: 1px solid #333; background: #0f0f23; color: #fff; font-size: 16px; width: 200px; text-align: center; letter-spacing: 2px; }
+
+    button { padding: 12px 24px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-create { background: #4ade80; color: #000; }
+    .btn-join { background: #60a5fa; color: #000; }
+    .btn-hangup { background: #ef4444; color: #fff; }
+    button:hover { opacity: 0.85; transform: translateY(-1px); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .room-info { font-size: 14px; color: #888; margin-bottom: 10px; }
+    .room-id { font-size: 28px; font-weight: 800; color: #4ade80; letter-spacing: 4px; margin-bottom: 20px; }
+
+    .status { font-size: 14px; color: #888; margin-top: 10px; }
+    .status.connected { color: #4ade80; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Video Call</h1>
+
+    <div id="lobby">
+      <button class="btn-create" onclick="createRoom()">Create Room</button>
+      <div style="margin: 15px 0; color: #666;">— OR —</div>
+      <input id="roomInput" placeholder="Enter Room Code" maxlength="6" />
+      <br><br>
+      <button class="btn-join" onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <div id="call" class="hidden">
+      <div class="room-info">Room Code</div>
+      <div class="room-id" id="displayRoomId"></div>
+      <div class="videos">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+      <div class="controls">
+        <button class="btn-hangup" onclick="hangUp()">Hang Up</button>
+      </div>
+      <div class="status" id="status">Connecting...</div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io()
+    let localStream = null
+    let peerConnection = null
+    let currentRoom = null
+    let otherUserId = null
+
+    const config = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    }
+
+    async function getMedia() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      document.getElementById('localVideo').srcObject = localStream
+    }
+
+    async function createRoom() {
+      await getMedia()
+      socket.emit('create-room', (roomId) => {
+        currentRoom = roomId
+        showCall(roomId)
+        setStatus('Waiting for someone to join...')
+      })
+    }
+
+    async function joinRoom() {
+      const roomId = document.getElementById('roomInput').value.trim().toUpperCase()
+      if (!roomId) return alert('Enter a room code')
+      await getMedia()
+      socket.emit('join-room', roomId, (res) => {
+        if (res.error) return alert(res.error)
+        currentRoom = roomId
+        showCall(roomId)
+        setStatus('Connected! Setting up call...')
+      })
+    }
+
+    function showCall(roomId) {
+      document.getElementById('lobby').classList.add('hidden')
+      document.getElementById('call').classList.remove('hidden')
+      document.getElementById('displayRoomId').textContent = roomId
+    }
+
+    function setStatus(text) {
+      const el = document.getElementById('status')
+      el.textContent = text
+      el.classList.toggle('connected', text.includes('Connected'))
+    }
+
+    function createPeerConnection(userId) {
+      otherUserId = userId
+      peerConnection = new RTCPeerConnection(config)
+
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream)
+      })
+
+      peerConnection.onicecandidate = (e) => {
+        if (e.candidate && otherUserId) {
+          socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
+        }
+      }
+
+      peerConnection.ontrack = (e) => {
+        document.getElementById('remoteVideo').srcObject = e.streams[0]
+        setStatus('Connected!')
+      }
+
+      peerConnection.onconnectionstatechange = () => {
+        console.log('Connection state:', peerConnection.connectionState)
+      }
+
+      return peerConnection
+    }
+
+    socket.on('user-joined', async (userId) => {
+      console.log('User joined:', userId)
+      setStatus('Other user joined, setting up call...')
+      const pc = createPeerConnection(userId)
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      socket.emit('offer', { to: userId, offer })
+    })
+
+    socket.on('offer', async ({ from, offer }) => {
+      console.log('Got offer from:', from)
+      otherUserId = from
+      const pc = createPeerConnection(from)
+      await pc.setRemoteDescription(new RTCSessionDescription(offer))
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      socket.emit('answer', { to: from, answer })
+      setStatus('Connected!')
+    })
+
+    socket.on('answer', async ({ from, answer }) => {
+      console.log('Got answer from:', from)
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+      setStatus('Connected!')
+    })
+
+    socket.on('ice-candidate', async ({ from, candidate }) => {
+      console.log('Got ICE candidate from:', from)
+      if (peerConnection) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+      }
+    })
+
+    socket.on('user-left', () => {
+      document.getElementById('remoteVideo').srcObject = null
+      setStatus('Other user disconnected')
+    })
+
+    function hangUp() {
+      if (peerConnection) peerConnection.close()
+      if (localStream) localStream.getTracks().forEach(t => t.stop())
+      socket.disconnect()
+      location.reload()
+    }
+  </script>
+</body>
+</html>
