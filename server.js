@@ -11,15 +11,28 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 const rooms = {}
 
+function getRoomList() {
+  return Object.entries(rooms).map(([id, room]) => ({
+    id,
+    users: room.users.length,
+    createdAt: room.createdAt
+  }))
+}
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id)
 
   socket.on('create-room', (callback) => {
     const roomId = Math.random().toString(36).substring(2, 8).toUpperCase()
-    rooms[roomId] = { users: [socket.id] }
+    rooms[roomId] = { users: [socket.id], createdAt: Date.now() }
     socket.join(roomId)
     console.log(`Room ${roomId} created by ${socket.id}`)
     callback(roomId)
+    io.emit('room-list', getRoomList())
+  })
+
+  socket.on('get-rooms', (callback) => {
+    callback(getRoomList())
   })
 
   socket.on('join-room', (roomId, callback) => {
@@ -66,6 +79,7 @@ io.on('connection', (socket) => {
         }
       }
     }
+    io.emit('room-list', getRoomList())
   })
 })
 

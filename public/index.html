@@ -19,14 +19,12 @@
 
     .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
 
-    input { padding: 12px 16px; border-radius: 8px; border: 1px solid #333; background: #0f0f23; color: #fff; font-size: 16px; width: 200px; text-align: center; letter-spacing: 2px; }
-
     button { padding: 12px 24px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-create { background: #4ade80; color: #000; }
     .btn-join { background: #60a5fa; color: #000; }
     .btn-hangup { background: #ef4444; color: #fff; }
+    .btn-refresh { background: #333; color: #fff; font-size: 14px; padding: 8px 16px; }
     button:hover { opacity: 0.85; transform: translateY(-1px); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .room-info { font-size: 14px; color: #888; margin-bottom: 10px; }
     .room-id { font-size: 28px; font-weight: 800; color: #4ade80; letter-spacing: 4px; margin-bottom: 20px; }
@@ -35,6 +33,21 @@
     .status.connected { color: #4ade80; }
 
     .hidden { display: none; }
+
+    .room-list { margin: 20px 0; }
+    .room-list h3 { font-size: 16px; color: #888; margin-bottom: 10px; }
+    .room-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #0f0f23; border: 1px solid #333; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .room-item:hover { border-color: #60a5fa; background: #1a1a3e; }
+    .room-item .room-code { font-size: 18px; font-weight: 700; color: #4ade80; letter-spacing: 2px; }
+    .room-item .room-users { font-size: 13px; color: #888; }
+    .room-item .room-join { background: #60a5fa; color: #000; padding: 6px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; }
+    .room-item .room-join:hover { opacity: 0.8; }
+
+    .empty-msg { color: #666; font-size: 14px; margin: 20px 0; }
   </style>
 </head>
 <body>
@@ -43,10 +56,16 @@
 
     <div id="lobby">
       <button class="btn-create" onclick="createRoom()">Create Room</button>
-      <div style="margin: 15px 0; color: #666;">— OR —</div>
-      <input id="roomInput" placeholder="Enter Room Code" maxlength="6" />
-      <br><br>
-      <button class="btn-join" onclick="joinRoom()">Join Room</button>
+
+      <div class="room-list">
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px;">
+          <h3>Available Rooms</h3>
+          <button class="btn-refresh" onclick="loadRooms()">Refresh</button>
+        </div>
+        <div id="roomListContainer">
+          <div class="empty-msg">No rooms yet. Create one to start.</div>
+        </div>
+      </div>
     </div>
 
     <div id="call" class="hidden">
@@ -83,6 +102,35 @@
       document.getElementById('localVideo').srcObject = localStream
     }
 
+    function loadRooms() {
+      socket.emit('get-rooms', (rooms) => {
+        renderRooms(rooms)
+      })
+    }
+
+    function renderRooms(rooms) {
+      const container = document.getElementById('roomListContainer')
+      if (rooms.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No rooms yet. Create one to start.</div>'
+        return
+      }
+      container.innerHTML = rooms.map(r => `
+        <div class="room-item" onclick="joinRoom('${r.id}')">
+          <div>
+            <div class="room-code">${r.id}</div>
+            <div class="room-users">${r.users}/2 users</div>
+          </div>
+          <button class="room-join" onclick="event.stopPropagation(); joinRoom('${r.id}')">Join</button>
+        </div>
+      `).join('')
+    }
+
+    socket.on('room-list', (rooms) => {
+      renderRooms(rooms)
+    })
+
+    loadRooms()
+
     async function createRoom() {
       await getMedia()
       socket.emit('create-room', (roomId) => {
@@ -92,9 +140,7 @@
       })
     }
 
-    async function joinRoom() {
-      const roomId = document.getElementById('roomInput').value.trim().toUpperCase()
-      if (!roomId) return alert('Enter a room code')
+    async function joinRoom(roomId) {
       await getMedia()
       socket.emit('join-room', roomId, (res) => {
         if (res.error) return alert(res.error)
@@ -135,16 +181,10 @@
         setStatus('Connected!')
       }
 
-      peerConnection.onconnectionstatechange = () => {
-        console.log('Connection state:', peerConnection.connectionState)
-      }
-
       return peerConnection
     }
 
     socket.on('user-joined', async (userId) => {
-      console.log('User joined:', userId)
-      setStatus('Other user joined, setting up call...')
       const pc = createPeerConnection(userId)
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
@@ -152,7 +192,6 @@
     })
 
     socket.on('offer', async ({ from, offer }) => {
-      console.log('Got offer from:', from)
       otherUserId = from
       const pc = createPeerConnection(from)
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
@@ -163,13 +202,11 @@
     })
 
     socket.on('answer', async ({ from, answer }) => {
-      console.log('Got answer from:', from)
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
       setStatus('Connected!')
     })
 
     socket.on('ice-candidate', async ({ from, candidate }) => {
-      console.log('Got ICE candidate from:', from)
       if (peerConnection) {
         await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
       }
