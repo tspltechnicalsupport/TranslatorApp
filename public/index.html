@@ -13,7 +13,7 @@
     h1 { font-size: 24px; margin-bottom: 20px; }
 
     .videos { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-    video { width: 320px; height: 240px; background: #0f0f23; border-radius: 12px; object-fit: cover; }
+    video { width: 320px; height: 240px; background: #0f0f23; border-radius: 12px; object-fit: cover; max-width: 45vw; }
     #localVideo { border: 3px solid #4ade80; }
     #remoteVideo { border: 3px solid #60a5fa; }
 
@@ -24,6 +24,7 @@
     .btn-join { background: #60a5fa; color: #000; }
     .btn-hangup { background: #ef4444; color: #fff; }
     .btn-refresh { background: #333; color: #fff; font-size: 14px; padding: 8px 16px; }
+    .btn-perm { background: #f59e0b; color: #000; margin-bottom: 20px; }
     button:hover { opacity: 0.85; transform: translateY(-1px); }
 
     .room-info { font-size: 14px; color: #888; margin-bottom: 10px; }
@@ -31,6 +32,7 @@
 
     .status { font-size: 14px; color: #888; margin-top: 10px; }
     .status.connected { color: #4ade80; }
+    .status.error { color: #ef4444; }
 
     .hidden { display: none; }
 
@@ -48,6 +50,15 @@
     .room-item .room-join:hover { opacity: 0.8; }
 
     .empty-msg { color: #666; font-size: 14px; margin: 20px 0; }
+
+    .perm-box {
+      background: #0f0f23; border: 2px solid #f59e0b; border-radius: 12px;
+      padding: 20px; margin-bottom: 20px; text-align: center;
+    }
+    .perm-box p { font-size: 14px; color: #ccc; margin-bottom: 15px; }
+    .perm-status { font-size: 13px; margin-top: 10px; }
+    .perm-granted { color: #4ade80; }
+    .perm-denied { color: #ef4444; }
   </style>
 </head>
 <body>
@@ -55,7 +66,13 @@
     <h1>Video Call</h1>
 
     <div id="lobby">
-      <button class="btn-create" onclick="createRoom()">Create Room</button>
+      <div class="perm-box">
+        <p>Camera and microphone access is required for video calls.</p>
+        <button class="btn-perm" onclick="requestPermissions()">Allow Camera & Mic</button>
+        <div class="perm-status" id="permStatus"></div>
+      </div>
+
+      <button class="btn-create" id="btnCreate" onclick="createRoom()" disabled>Create Room</button>
 
       <div class="room-list">
         <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px;">
@@ -97,9 +114,26 @@
       ]
     }
 
-    async function getMedia() {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      document.getElementById('localVideo').srcObject = localStream
+    async function requestPermissions() {
+      const statusEl = document.getElementById('permStatus')
+      try {
+        statusEl.textContent = 'Requesting access...'
+        statusEl.className = 'perm-status'
+
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: true
+        })
+
+        document.getElementById('localVideo').srcObject = localStream
+        statusEl.textContent = 'Camera and mic enabled!'
+        statusEl.className = 'perm-status perm-granted'
+        document.getElementById('btnCreate').disabled = false
+      } catch (err) {
+        console.error('Permission error:', err)
+        statusEl.textContent = 'Permission denied. Please allow camera/mic in browser settings.'
+        statusEl.className = 'perm-status perm-denied'
+      }
     }
 
     function loadRooms() {
@@ -132,7 +166,7 @@
     loadRooms()
 
     async function createRoom() {
-      await getMedia()
+      if (!localStream) return alert('Allow camera and mic first!')
       socket.emit('create-room', (roomId) => {
         currentRoom = roomId
         showCall(roomId)
@@ -141,7 +175,10 @@
     }
 
     async function joinRoom(roomId) {
-      await getMedia()
+      if (!localStream) {
+        await requestPermissions()
+        if (!localStream) return alert('Allow camera and mic first!')
+      }
       socket.emit('join-room', roomId, (res) => {
         if (res.error) return alert(res.error)
         currentRoom = roomId
