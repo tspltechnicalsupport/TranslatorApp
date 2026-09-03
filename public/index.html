@@ -282,17 +282,27 @@
       if (!SR) return
       recognition = new SR()
       recognition.continuous = true
-      recognition.interimResults = false
+      recognition.interimResults = true
       recognition.lang = 'auto'
+
+      let lastInterim = null
 
       recognition.onresult = (e) => {
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (!e.results[i].isFinal) continue
           const text = e.results[i][0].transcript.trim()
-          if (!text) return
-          addSub('subsMe', text, 'me')
-          socket.emit('chat-message', { to: otherUserId, text })
-          translateAndSpeak(text)
+          if (!text) continue
+
+          if (e.results[i].isFinal) {
+            // Remove interim, show final
+            if (lastInterim) { lastInterim.remove(); lastInterim = null }
+            addSub('subsMe', text, 'me')
+            socket.emit('chat-message', { to: otherUserId, text })
+            translateAndSpeak(text)
+          } else {
+            // Show interim — update same element
+            if (lastInterim) lastInterim.remove()
+            lastInterim = addSub('subsMe', text, 'me', true)
+          }
         }
       }
       recognition.onerror = () => {}
@@ -300,20 +310,26 @@
       try { recognition.start() } catch(e) {}
     }
 
-    function addSub(containerId, text, who) {
+    function addSub(containerId, text, who, isInterim = false) {
       const container = document.getElementById(containerId)
       const words = text.split(/\s+/).filter(w => w.length > 0)
       const group = document.createElement('div')
       group.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;'
+      if (isInterim) group.style.opacity = '0.5'
       words.forEach((word, i) => {
         const span = document.createElement('span')
         span.className = 'word-box ' + who
         span.textContent = word
-        span.style.animationDelay = `${i * 0.08}s, ${3.5 + i * 0.08}s`
+        if (!isInterim) {
+          span.style.animationDelay = `${i * 0.06}s, ${3.5 + i * 0.06}s`
+        } else {
+          span.style.animation = 'none'
+        }
         group.appendChild(span)
       })
       container.appendChild(group)
-      setTimeout(() => { if (group.parentNode) group.remove() }, 4500)
+      if (!isInterim) setTimeout(() => { if (group.parentNode) group.remove() }, 4500)
+      return group
     }
 
     socket.on('chat-message', ({ text }) => {
