@@ -181,6 +181,7 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
+    let startingSR = false
     let myInterimGroup = null
     let myInterimCount = 0
 
@@ -308,7 +309,7 @@
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { D('NO SR API'); alert('Not supported'); return }
-      if (recognition) { D('already running'); return }
+      if (recognition || startingSR) { D('already running or starting'); return }
 
       // Log audio state before starting
       if (localStream) {
@@ -316,14 +317,16 @@
         D('pre-start audio: count=' + at.length + ' enabled=' + at.map(t => t.enabled).join(',') + ' readyState=' + at.map(t => t.readyState).join(','))
       }
 
+      startingSR = true
       const r = new SR()
       recognition = r
       r.continuous = true
       r.interimResults = true
-      r.lang = ''
-      D('SR created, lang=auto, calling start()...')
+      r.lang = 'en-US'
+      D('SR created, lang=en-US, calling start()...')
 
       r.onstart = () => {
+        startingSR = false
         D('SR onstart ✓')
         document.getElementById('btnListen').classList.add('listening')
         document.getElementById('listenStatus').textContent = 'Listening... speak now'
@@ -348,12 +351,18 @@
       }
 
       r.onerror = (e) => {
+        startingSR = false
         D('SR ERROR: ' + e.error)
+        if (e.error === 'aborted') {
+          // Just ignore aborted — user clicked again quickly
+          return
+        }
         document.getElementById('listenStatus').textContent = 'Error: ' + e.error
       }
 
       r.onend = () => {
         D('SR onend')
+        startingSR = false
         recognition = null
         myInterimGroup = null
         myInterimCount = 0
@@ -366,12 +375,14 @@
         r.start()
         D('start() called')
       } catch(e) {
+        startingSR = false
         D('start() threw: ' + e.message)
       }
     }
 
     function stopListening() {
       D('stopListening')
+      startingSR = false
       if (recognition) { recognition.stop(); recognition = null }
       myInterimGroup = null; myInterimCount = 0
       document.getElementById('btnListen').classList.remove('listening')
