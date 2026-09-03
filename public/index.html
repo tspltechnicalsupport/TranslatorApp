@@ -2,155 +2,143 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Translator Call</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100vh; height: 100dvh; overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; -webkit-user-select: none; user-select: none; }
 
     /* ============ LOBBY ============ */
     #lobby {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100vh; height: 100dvh; padding: 20px;
+      height: 100dvh; padding: 20px;
       background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
     }
-    .lobby-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #4ade80, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .lobby-sub { font-size: 14px; color: #666; margin-bottom: 30px; }
-
+    .lobby-title { font-size: 28px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg, #4ade80, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .lobby-sub { font-size: 13px; color: #666; margin-bottom: 24px; }
     .perm-box {
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center; width: 100%; max-width: 360px;
+      border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center; width: 100%; max-width: 340px;
     }
-    .perm-box p { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.5; }
-    .perm-preview { width: 120px; height: 90px; border-radius: 12px; object-fit: cover; background: #111; margin: 0 auto 16px; display: block; border: 2px solid #333; }
+    .perm-box p { font-size: 13px; color: #888; margin-bottom: 14px; line-height: 1.5; }
+    .perm-preview { width: 100px; height: 75px; border-radius: 10px; object-fit: cover; background: #111; margin: 0 auto 14px; display: block; border: 2px solid #333; }
     .perm-preview.active { border-color: #4ade80; }
-    .perm-steps { text-align: left; font-size: 12px; color: #666; margin-top: 12px; line-height: 1.8; }
+    .perm-steps { text-align: left; font-size: 11px; color: #666; margin-top: 10px; line-height: 1.8; }
     .perm-steps b { color: #f59e0b; }
-
-    .btn { padding: 14px 28px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; max-width: 360px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .btn { padding: 14px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; width: 100%; max-width: 340px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 52px; }
     .btn:active { transform: scale(0.97); }
-    .btn-perm { background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; min-height: 52px; font-size: 17px; }
-    .btn-create { background: linear-gradient(135deg, #4ade80, #22c55e); color: #000; margin-bottom: 12px; }
+    .btn-perm { background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; }
+    .btn-create { background: linear-gradient(135deg, #4ade80, #22c55e); color: #000; margin-bottom: 10px; }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
-
-    .room-list { width: 100%; max-width: 360px; margin-top: 24px; }
-    .room-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .room-list-header h3 { font-size: 14px; color: #666; }
-    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; cursor: pointer; }
+    .room-list { width: 100%; max-width: 340px; margin-top: 20px; }
+    .room-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .room-list-header h3 { font-size: 13px; color: #666; }
+    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; cursor: pointer; }
     .room-item {
       display: flex; align-items: center; justify-content: space-between;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
     }
     .room-item:active { background: rgba(255,255,255,0.1); }
-    .room-code { font-size: 20px; font-weight: 800; color: #4ade80; letter-spacing: 3px; }
-    .room-users { font-size: 12px; color: #666; margin-top: 2px; }
-    .room-join-btn { background: #60a5fa; color: #000; padding: 8px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
-    .empty-msg { text-align: center; color: #444; font-size: 13px; padding: 20px; }
-    .perm-status { font-size: 12px; margin-top: 10px; }
+    .room-code { font-size: 18px; font-weight: 800; color: #4ade80; letter-spacing: 3px; }
+    .room-users { font-size: 11px; color: #666; margin-top: 2px; }
+    .room-join-btn { background: #60a5fa; color: #000; padding: 7px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; cursor: pointer; }
+    .empty-msg { text-align: center; color: #444; font-size: 12px; padding: 16px; }
+    .perm-status { font-size: 12px; margin-top: 10px; min-height: 18px; }
     .perm-ok { color: #4ade80; }
     .perm-fail { color: #ef4444; }
 
     /* ============ CALL — SPLIT SCREEN ============ */
     #call { display: none; position: fixed; inset: 0; background: #000; }
-    #call.active { display: flex; }
+    #call.active { display: block; }
 
-    /* Landscape: side by side */
-    .split { display: flex; width: 100%; height: 100%; }
     .half {
-      flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
+      position: absolute; overflow: hidden;
     }
     .half video {
       position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111;
     }
 
-    /* Divider line between the two */
-    .split .half:first-child { border-right: 1px solid rgba(255,255,255,0.1); }
+    /* Divider */
+    .divider { position: absolute; z-index: 12; background: rgba(255,255,255,0.15); }
 
-    /* Subtitle overlay on each half — far left/right edges */
+    /* Subtitles — centered in each half, easy to read */
     .half-subtitles {
-      position: absolute; bottom: 70px; z-index: 10;
+      position: absolute; z-index: 15;
       display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
-      width: 45%; max-width: 300px; align-content: flex-end;
+      justify-content: center; align-items: flex-end;
+      padding: 0 10px;
     }
-    .half:first-child .half-subtitles { left: 12px; }
-    .half:last-child .half-subtitles { right: 12px; left: auto; }
 
-    /* Word group container */
     .word-group {
-      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px;
-      transition: opacity 0.4s ease;
+      display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
     }
-    .word-group.interim { opacity: 0.55; }
+    .word-group.interim { opacity: 0.5; }
 
-    /* Individual word boxes — smooth everything */
     .word-box {
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
-      padding: 5px 11px; border-radius: 8px;
-      font-size: 13px; font-weight: 600; color: #fff;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
+      padding: 6px 14px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; color: #fff;
       display: inline-block; white-space: nowrap;
-      opacity: 0; transform: translateY(8px) scale(0.9);
-      animation: wordSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      transition: background 0.3s ease, border-color 0.3s ease;
+      opacity: 0; transform: translateY(6px);
+      animation: wIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: opacity, transform;
     }
-    .word-box.me { border: 1px solid rgba(96,165,250,0.4); }
-    .word-box.them { border: 1px solid rgba(74,222,128,0.4); }
+    .word-box.me { border: 1.5px solid rgba(96,165,250,0.5); }
+    .word-box.them { border: 1.5px solid rgba(74,222,128,0.5); }
     .word-box.fade-out {
-      animation: wordSlideOut 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    @keyframes wordSlideIn {
-      from { opacity: 0; transform: translateY(8px) scale(0.9); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    @keyframes wIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes wordSlideOut {
+    @keyframes wOut {
       from { opacity: 1; transform: translateY(0); }
-      to { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 0; transform: translateY(-4px); }
     }
 
     /* Label badges */
     .label-badge {
-      position: absolute; top: 12px; z-index: 10;
+      position: absolute; z-index: 15;
       background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
       padding: 4px 12px; border-radius: 16px;
       font-size: 11px; font-weight: 600; letter-spacing: 1px;
     }
-    .half:first-child .label-badge { left: 12px; color: #4ade80; }
-    .half:last-child .label-badge { right: 12px; color: #60a5fa; }
 
     /* Controls bar */
     .controls-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-      display: flex; justify-content: center; gap: 14px;
-      padding: 16px; padding-bottom: max(50px, env(safe-area-inset-bottom));
-      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      display: flex; justify-content: center; gap: 12px;
+      padding: 14px; padding-bottom: max(14px, env(safe-area-inset-bottom));
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
     }
     .ctrl {
-      width: 52px; height: 52px; border-radius: 50%; border: none;
+      width: 50px; height: 50px; border-radius: 50%; border: none;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.15s; font-size: 20px;
+      cursor: pointer; transition: transform 0.12s ease, background 0.2s ease; font-size: 19px;
       background: rgba(255,255,255,0.12); color: #fff;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
     .ctrl:active { transform: scale(0.9); }
     .ctrl.muted { background: #ef4444; }
     .ctrl.cam-off { background: #ef4444; }
-    .ctrl.hang { background: #ef4444; width: 58px; height: 58px; font-size: 24px; }
-    .ctrl.listening { background: #4ade80; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); } 50% { box-shadow: 0 0 0 10px rgba(74,222,128,0); } }
+    .ctrl.hang { background: #ef4444; width: 56px; height: 56px; font-size: 23px; }
+    .ctrl.listening { background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.3); }
 
     .listen-status {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20;
+      position: fixed; z-index: 20; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-      padding: 6px 14px; border-radius: 16px;
+      padding: 5px 12px; border-radius: 14px;
       font-size: 11px; color: #888; white-space: nowrap;
     }
     .listen-status.active { color: #4ade80; }
 
-    /* Room badge */
     .room-badge {
-      position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20;
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20;
       background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-      padding: 5px 14px; border-radius: 16px;
+      padding: 4px 12px; border-radius: 14px;
       font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
     }
 
@@ -160,15 +148,35 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       background: rgba(15,15,35,0.95);
     }
-    .waiting .code { font-size: 36px; font-weight: 800; color: #4ade80; letter-spacing: 6px; margin-bottom: 12px; }
-    .waiting .spin { width: 36px; height: 36px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    .waiting .code { font-size: 32px; font-weight: 800; color: #4ade80; letter-spacing: 5px; margin-bottom: 10px; }
+    .waiting .spin { width: 32px; height: 32px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
     .waiting p { color: #666; font-size: 13px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ============ VERTICAL (PORTRAIT) ============ */
+    /* ============ LANDSCAPE ============ */
+    @media (orientation: landscape) {
+      .half { top: 0; bottom: 0; width: 50%; }
+      .half:first-child { left: 0; }
+      .half:last-child { right: 0; left: auto; }
+      .divider { top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); }
+      .half:first-child .label-badge { top: 10px; left: 10px; color: #4ade80; }
+      .half:last-child .label-badge { top: 10px; right: 10px; color: #60a5fa; }
+      .half:first-child .half-subtitles { bottom: 90px; left: 10px; width: 40%; max-width: 260px; }
+      .half:last-child .half-subtitles { bottom: 90px; right: 10px; left: auto; width: 40%; max-width: 260px; }
+      .listen-status { bottom: 80px; }
+    }
+
+    /* ============ PORTRAIT ============ */
     @media (orientation: portrait) {
-      .split { flex-direction: column; }
-      .half:first-child { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .half { left: 0; right: 0; height: 50%; }
+      .half:first-child { top: 0; }
+      .half:last-child { top: 50%; bottom: 0; }
+      .divider { left: 0; right: 0; top: 50%; height: 1px; transform: translateY(-50%); }
+      .half:first-child .label-badge { top: 10px; left: 10px; color: #4ade80; }
+      .half:last-child .label-badge { top: 10px; right: 10px; color: #60a5fa; }
+      .half:first-child .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
+      .half:last-child .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
+      .listen-status { bottom: 76px; }
     }
   </style>
 </head>
@@ -182,7 +190,7 @@
     <div class="perm-box">
       <video class="perm-preview" id="permPreview" autoplay muted playsinline></video>
       <p>Allow camera & mic to start</p>
-      <button class="btn btn-perm" id="btnPerm" onclick="requestPermissions()">Allow Camera & Mic</button>
+      <button class="btn btn-perm" id="btnPerm">Allow Camera & Mic</button>
       <div class="perm-status" id="permStatus"></div>
       <div class="perm-steps" id="permSteps" style="display:none">
         <b>Android Chrome:</b><br>
@@ -193,7 +201,7 @@
       </div>
     </div>
 
-    <button class="btn btn-create" id="btnCreate" onclick="createRoom()" disabled>Create Room</button>
+    <button class="btn btn-create" id="btnCreate" disabled>Create Room</button>
 
     <div class="room-list">
       <div class="room-list-header">
@@ -204,38 +212,32 @@
     </div>
   </div>
 
-  <!-- CALL — SPLIT SCREEN -->
+  <!-- CALL -->
   <div id="call">
-    <div class="split">
-      <!-- LEFT/TOP: Remote (them) -->
-      <div class="half">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div class="label-badge">THEM</div>
-        <div class="half-subtitles" id="subsThem"></div>
-        <div class="waiting" id="waitingThem">
-          <div class="code" id="waitingCode"></div>
-          <div class="spin"></div>
-          <p>Waiting for someone to join...</p>
-        </div>
-      </div>
-
-      <!-- RIGHT/BOTTOM: Local (you) -->
-      <div class="half">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <div class="label-badge">YOU</div>
-        <div class="half-subtitles" id="subsMe"></div>
+    <div class="half" id="halfThem">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="label-badge" style="top:10px;left:10px;color:#4ade80;">THEM</div>
+      <div class="half-subtitles" id="subsThem"></div>
+      <div class="waiting" id="waitingThem">
+        <div class="code" id="waitingCode"></div>
+        <div class="spin"></div>
+        <p>Waiting for someone to join...</p>
       </div>
     </div>
-
+    <div class="half" id="halfMe">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <div class="label-badge" style="top:10px;right:10px;color:#60a5fa;">YOU</div>
+      <div class="half-subtitles" id="subsMe"></div>
+    </div>
+    <div class="divider"></div>
     <div class="room-badge" id="roomBadge"></div>
-
-    <div class="controls-bar">
-      <button class="ctrl" id="btnListen" onclick="toggleListening()" title="Start Listening">🗣️</button>
-      <button class="ctrl" id="btnMute" onclick="toggleMute()">🎤</button>
-      <button class="ctrl" id="btnCam" onclick="toggleCam()">📹</button>
-      <button class="ctrl hang" onclick="hangUp()">📞</button>
-    </div>
     <div class="listen-status" id="listenStatus">Tap 🗣️ to start listening</div>
+    <div class="controls-bar">
+      <button class="ctrl" id="btnListen" title="Start Listening">🗣️</button>
+      <button class="ctrl" id="btnMute" title="Mute">🎤</button>
+      <button class="ctrl" id="btnCam" title="Camera">📹</button>
+      <button class="ctrl hang" id="btnHang" title="Hang Up">📞</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -246,13 +248,9 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
+    let lastInterim = null
 
-    const config = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    }
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
@@ -261,30 +259,19 @@
       const preview = document.getElementById('permPreview')
       const btn = document.getElementById('btnPerm')
 
-      statusEl.textContent = 'Tapping... checking camera access'
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        statusEl.textContent = 'Camera not supported — use Chrome or Safari'
+        statusEl.className = 'perm-status perm-fail'
+        return
+      }
+
+      statusEl.textContent = 'Requesting access...'
       statusEl.className = 'perm-status'
       stepsEl.style.display = 'none'
-
-      // Check if API is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        statusEl.textContent = 'Camera not supported. Use Chrome or Safari.'
-        statusEl.className = 'perm-status perm-fail'
-        stepsEl.style.display = 'block'
-        return
-      }
-
-      // Check if HTTPS
-      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        statusEl.textContent = 'Must use HTTPS for camera. Check URL.'
-        statusEl.className = 'perm-status perm-fail'
-        return
-      }
+      btn.textContent = 'Requesting...'
+      btn.disabled = true
 
       try {
-        statusEl.textContent = 'Requesting camera...'
-        btn.textContent = 'Requesting...'
-        btn.disabled = true
-
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
         preview.srcObject = localStream
         preview.classList.add('active')
@@ -293,27 +280,18 @@
         btn.textContent = 'Enabled ✓'
         btn.style.background = '#22c55e'
         document.getElementById('btnCreate').disabled = false
-
       } catch (err) {
-        console.log('Error:', err.name, err.message)
+        console.log('Perm error:', err.name)
         btn.textContent = 'Tap to Retry'
         btn.disabled = false
-
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          statusEl.textContent = 'Permission denied — see instructions below'
+          statusEl.textContent = 'Denied — see how to fix below'
           statusEl.className = 'perm-status perm-fail'
           stepsEl.style.display = 'block'
-        } else if (err.name === 'NotFoundError') {
-          statusEl.textContent = 'No camera found on this device'
-          statusEl.className = 'perm-status perm-fail'
-        } else if (err.name === 'NotReadableError') {
-          statusEl.textContent = 'Camera in use by another app'
-          statusEl.className = 'perm-status perm-fail'
         } else {
-          statusEl.textContent = 'Error: ' + err.name + ' — tap to retry'
+          statusEl.textContent = 'Error: ' + err.name
           statusEl.className = 'perm-status perm-fail'
         }
-
         // Try audio only
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -323,9 +301,12 @@
           btn.textContent = 'Mic Enabled ✓'
           btn.style.background = '#22c55e'
           stepsEl.style.display = 'none'
-        } catch (e2) { /* nothing works */ }
+        } catch (e2) {}
       }
     }
+
+    document.getElementById('btnPerm').addEventListener('click', requestPermissions)
+    document.getElementById('btnPerm').addEventListener('touchend', function(e) { e.preventDefault(); requestPermissions() })
 
     // ============ ROOMS ============
     function loadRooms() { socket.emit('get-rooms', renderRooms) }
@@ -341,13 +322,10 @@
     socket.on('room-list', renderRooms)
     loadRooms()
 
-    async function createRoom() {
-      if (!localStream) return alert('Allow camera & mic first!')
-      socket.emit('create-room', (roomId) => {
-        currentRoom = roomId
-        showCall(roomId)
-      })
-    }
+    document.getElementById('btnCreate').addEventListener('click', async function() {
+      if (!localStream) return
+      socket.emit('create-room', (roomId) => { currentRoom = roomId; showCall(roomId) })
+    })
 
     async function joinRoom(roomId) {
       if (!localStream) { await requestPermissions(); if (!localStream) return }
@@ -357,6 +335,7 @@
         showCall(roomId)
       })
     }
+
     function showCall(roomId) {
       document.getElementById('lobby').style.display = 'none'
       document.getElementById('call').classList.add('active')
@@ -365,7 +344,10 @@
       document.getElementById('localVideo').srcObject = localStream
     }
 
-    // ============ SPEECH RECOGNITION ============
+    // ============ SPEECH ============
+    document.getElementById('btnListen').addEventListener('click', toggleListening)
+    document.getElementById('btnListen').addEventListener('touchend', function(e) { e.preventDefault(); toggleListening() })
+
     function toggleListening() {
       if (recognition) { stopListening(); return }
       startListening()
@@ -373,14 +355,12 @@
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) { alert('Speech recognition not supported on this browser'); return }
+      if (!SR) { alert('Speech not supported'); return }
 
       recognition = new SR()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'auto'
-
-      let lastInterim = null
 
       recognition.onresult = (e) => {
         for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -391,7 +371,6 @@
             if (lastInterim) { lastInterim.remove(); lastInterim = null }
             addSub('subsMe', text, 'me')
             socket.emit('chat-message', { to: otherUserId, text })
-            translateAndSpeak(text)
           } else {
             if (lastInterim) lastInterim.remove()
             lastInterim = addSub('subsMe', text, 'me', true)
@@ -400,9 +379,10 @@
       }
 
       recognition.onerror = (e) => {
-        if (e.error === 'not-allowed') { alert('Microphone access denied'); stopListening() }
+        if (e.error === 'not-allowed') { alert('Mic blocked'); stopListening() }
       }
       recognition.onend = () => { if (recognition) try { recognition.start() } catch(e) {} }
+
       try {
         recognition.start()
         document.getElementById('btnListen').classList.add('listening')
@@ -412,11 +392,15 @@
     }
 
     function stopListening() {
-      if (recognition) { recognition.stop(); recognition = null }
+      if (recognition) { recognition.stop(); recognition = null; lastInterim = null }
       document.getElementById('btnListen').classList.remove('listening')
       document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start listening'
       document.getElementById('listenStatus').classList.remove('active')
     }
+
+    socket.on('chat-message', ({ text }) => { addSub('subsThem', text, 'them') })
+
+    // ============ SUBTITLES ============
     function addSub(containerId, text, who, isInterim = false) {
       const container = document.getElementById(containerId)
       const words = text.split(/\s+/).filter(w => w.length > 0)
@@ -426,27 +410,18 @@
         const span = document.createElement('span')
         span.className = 'word-box ' + who
         span.textContent = word
-        span.style.animationDelay = `${i * 0.05}s`
-        if (isInterim) span.style.animationDuration = '0.15s'
+        span.style.animationDelay = `${i * 0.04}s`
+        if (isInterim) span.style.animationDuration = '0.2s'
         group.appendChild(span)
       })
       container.appendChild(group)
       if (!isInterim) {
         setTimeout(() => {
           group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
-          setTimeout(() => { if (group.parentNode) group.remove() }, 550)
+          setTimeout(() => { if (group.parentNode) group.remove() }, 650)
         }, 3500)
       }
       return group
-    }
-
-    socket.on('chat-message', ({ text }) => {
-      addSub('subsThem', text, 'them')
-    })
-
-    // ============ TRANSLATION (placeholder) ============
-    async function translateAndSpeak(text) {
-      console.log('Would translate:', text)
     }
 
     // ============ WEBRTC ============
@@ -490,6 +465,10 @@
     })
 
     // ============ CONTROLS ============
+    document.getElementById('btnMute').addEventListener('click', toggleMute)
+    document.getElementById('btnCam').addEventListener('click', toggleCam)
+    document.getElementById('btnHang').addEventListener('click', hangUp)
+
     function toggleMute() {
       const a = localStream.getAudioTracks()[0]
       a.enabled = !a.enabled
@@ -511,26 +490,6 @@
       socket.disconnect()
       location.reload()
     }
-
-    // ============ MOBILE TOUCH FIX ============
-    document.getElementById('btnPerm').addEventListener('touchend', function(e) {
-      e.preventDefault()
-      requestPermissions()
-    })
-
-    // Debug info on page
-    function showDebug() {
-      const el = document.createElement('div')
-      el.style.cssText = 'position:fixed;bottom:140px;left:8px;right:8px;z-index:99;background:rgba(0,0,0,0.8);color:#4ade80;font-size:10px;padding:8px;border-radius:8px;font-family:monospace;pointer-events:none;'
-      const ua = navigator.userAgent
-      const isIOS = /iPhone|iPad|iPod/.test(ua)
-      const isAndroid = /Android/.test(ua)
-      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost'
-      el.innerHTML = `Secure: ${isSecure} | iOS: ${isIOS} | Android: ${isAndroid} | getUserMedia: ${!!navigator.mediaDevices}`
-      document.body.appendChild(el)
-      setTimeout(() => el.remove(), 6000)
-    }
-    showDebug()
   </script>
 </body>
 </html>
