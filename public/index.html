@@ -49,17 +49,17 @@
       display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
       justify-content: center; align-items: flex-end; padding: 0 10px;
     }
-    .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 4px; }
-    .word-group.interim { opacity: 0.6; }
+    .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+    .word-group.interim { opacity: 0.5; }
     .word-box {
       background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
       padding: 6px 14px; border-radius: 10px; font-size: 15px; font-weight: 600; color: #fff;
       display: inline-block; white-space: nowrap;
-      border: 1.5px solid rgba(255,255,255,0.3);
-      opacity: 1;
+      opacity: 0; transform: translateY(6px);
+      animation: wIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .word-box.me { border-color: rgba(96,165,250,0.7); }
-    .word-box.them { border-color: rgba(74,222,128,0.7); }
+    .word-box.me { border: 1.5px solid rgba(96,165,250,0.5); }
+    .word-box.them { border: 1.5px solid rgba(74,222,128,0.5); }
     .word-box.fade-out { animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes wIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes wOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
@@ -181,20 +181,15 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
-    let startingSR = false
     let myInterimGroup = null
     let myInterimCount = 0
 
     // ============ DEBUG ============
-    const ua = navigator.userAgent
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua)
-    const DEVICE = isMobile ? '📱MOBILE' : '💻PC'
     const dlog = []
     function D(msg) {
-      const tagged = DEVICE + ' | ' + msg
-      console.log(tagged)
+      console.log('[DEBUG]', msg)
       const t = new Date().toLocaleTimeString()
-      dlog.push(t + ' ' + tagged)
+      dlog.push(t + ' ' + msg)
       if (dlog.length > 20) dlog.shift()
       let el = document.getElementById('dbg')
       if (!el) {
@@ -204,9 +199,9 @@
         document.body.appendChild(el)
       }
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      el.innerHTML = '<b style="color:#ff0">' + DEVICE + '</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
+      el.innerHTML = '<b style="color:#ff0">DEBUG</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
     }
-    D('page loaded | protocol=' + location.protocol + ' | ua=' + ua.substring(0, 60))
+    D('page loaded | protocol=' + location.protocol)
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
@@ -309,7 +304,7 @@
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { D('NO SR API'); alert('Not supported'); return }
-      if (recognition || startingSR) { D('already running or starting'); return }
+      if (recognition) { D('already running'); return }
 
       // Log audio state before starting
       if (localStream) {
@@ -317,16 +312,14 @@
         D('pre-start audio: count=' + at.length + ' enabled=' + at.map(t => t.enabled).join(',') + ' readyState=' + at.map(t => t.readyState).join(','))
       }
 
-      startingSR = true
       const r = new SR()
       recognition = r
       r.continuous = true
       r.interimResults = true
-      r.lang = 'en-US'
-      D('SR created, lang=en-US, calling start()...')
+      r.lang = ''
+      D('SR created, lang=auto, calling start()...')
 
       r.onstart = () => {
-        startingSR = false
         D('SR onstart ✓')
         document.getElementById('btnListen').classList.add('listening')
         document.getElementById('listenStatus').textContent = 'Listening... speak now'
@@ -351,18 +344,12 @@
       }
 
       r.onerror = (e) => {
-        startingSR = false
         D('SR ERROR: ' + e.error)
-        if (e.error === 'aborted') {
-          // Just ignore aborted — user clicked again quickly
-          return
-        }
         document.getElementById('listenStatus').textContent = 'Error: ' + e.error
       }
 
       r.onend = () => {
         D('SR onend')
-        startingSR = false
         recognition = null
         myInterimGroup = null
         myInterimCount = 0
@@ -375,14 +362,12 @@
         r.start()
         D('start() called')
       } catch(e) {
-        startingSR = false
         D('start() threw: ' + e.message)
       }
     }
 
     function stopListening() {
       D('stopListening')
-      startingSR = false
       if (recognition) { recognition.stop(); recognition = null }
       myInterimGroup = null; myInterimCount = 0
       document.getElementById('btnListen').classList.remove('listening')
@@ -404,7 +389,6 @@
     function addWords(containerId, text, who, isInterim) {
       const container = document.getElementById(containerId)
       if (!container) { D('NO container ' + containerId); return }
-      D('container ' + containerId + ' exists, children=' + container.children.length + ' display=' + getComputedStyle(container).display)
 
       const words = text.split(/\s+/).filter(w => w.length > 0)
 
