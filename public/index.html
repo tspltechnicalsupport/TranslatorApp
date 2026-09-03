@@ -56,7 +56,9 @@
       padding: 6px 14px; border-radius: 10px; font-size: 15px; font-weight: 600; color: #fff;
       display: inline-block; white-space: nowrap;
       border: 1.5px solid rgba(255,255,255,0.3); opacity: 1;
+      animation: popIn 0.15s ease-out;
     }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
     .word-box.me { border-color: rgba(96,165,250,0.7); }
     .word-box.them { border-color: rgba(74,222,128,0.7); }
 
@@ -321,9 +323,9 @@
         myInterimGroup = null
         myInterimCount = 0
 
-        // Mobile: auto-restart
+        // Mobile: auto-restart instantly
         if (isMobile && document.getElementById('btnListen').classList.contains('listening')) {
-          setTimeout(() => { if (document.getElementById('btnListen').classList.contains('listening')) startListening() }, 100)
+          startListening()
           return
         }
 
@@ -334,7 +336,7 @@
 
       try { r.start() } catch (e) {
         recognition = null
-        setTimeout(startListening, 300)
+        setTimeout(startListening, 100)
       }
     }
 
