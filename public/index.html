@@ -6,42 +6,33 @@
   <title>Translator Call</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; -webkit-user-select: none; user-select: none; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; }
 
     #lobby {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100dvh; padding: 20px;
-      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+      height: 100dvh; padding: 20px; background: linear-gradient(135deg, #0f0f23, #1a1a3e, #0f0f23);
     }
     .lobby-title { font-size: 28px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg, #4ade80, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .lobby-sub { font-size: 13px; color: #666; margin-bottom: 24px; }
-    .perm-box {
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center; width: 100%; max-width: 340px;
-    }
-    .perm-box p { font-size: 13px; color: #888; margin-bottom: 14px; line-height: 1.5; }
+    .perm-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center; width: 100%; max-width: 340px; }
+    .perm-box p { font-size: 13px; color: #888; margin-bottom: 14px; }
     .perm-preview { width: 100px; height: 75px; border-radius: 10px; object-fit: cover; background: #111; margin: 0 auto 14px; display: block; border: 2px solid #333; }
     .perm-preview.active { border-color: #4ade80; }
-    .perm-steps { text-align: left; font-size: 11px; color: #666; margin-top: 10px; line-height: 1.8; }
+    .perm-steps { text-align: left; font-size: 11px; color: #666; margin-top: 10px; line-height: 1.8; display: none; }
     .perm-steps b { color: #f59e0b; }
-    .btn { padding: 14px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s ease; width: 100%; max-width: 340px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 52px; }
+    .btn { padding: 14px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; max-width: 340px; min-height: 52px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .btn:active { transform: scale(0.97); }
     .btn-perm { background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; }
     .btn-create { background: linear-gradient(135deg, #4ade80, #22c55e); color: #000; margin-bottom: 10px; }
-    .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .btn:disabled { opacity: 0.3; }
     .room-list { width: 100%; max-width: 340px; margin-top: 20px; }
-    .room-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .room-list-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
     .room-list-header h3 { font-size: 13px; color: #666; }
-    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; cursor: pointer; }
-    .room-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
-    }
-    .room-item:active { background: rgba(255,255,255,0.1); }
+    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; }
+    .room-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
     .room-code { font-size: 18px; font-weight: 800; color: #4ade80; letter-spacing: 3px; }
-    .room-users { font-size: 11px; color: #666; margin-top: 2px; }
-    .room-join-btn { background: #60a5fa; color: #000; padding: 7px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; cursor: pointer; }
+    .room-users { font-size: 11px; color: #666; }
+    .room-join-btn { background: #60a5fa; color: #000; padding: 7px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; }
     .empty-msg { text-align: center; color: #444; font-size: 12px; padding: 16px; }
     .perm-status { font-size: 12px; margin-top: 10px; min-height: 18px; }
     .perm-ok { color: #4ade80; }
@@ -49,43 +40,31 @@
 
     #call { display: none; position: fixed; inset: 0; background: #000; }
     #call.active { display: block; }
-
     .half { position: absolute; overflow: hidden; }
     .half video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111; }
-
     .divider { position: absolute; z-index: 12; background: rgba(255,255,255,0.15); }
 
     .half-subtitles {
       position: absolute; z-index: 15;
       display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
-      justify-content: center; align-items: flex-end;
-      padding: 0 10px;
+      justify-content: center; align-items: flex-end; padding: 0 10px;
     }
     .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
     .word-group.interim { opacity: 0.5; }
-
     .word-box {
       background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
-      padding: 6px 14px; border-radius: 10px;
-      font-size: 15px; font-weight: 600; color: #fff;
+      padding: 6px 14px; border-radius: 10px; font-size: 15px; font-weight: 600; color: #fff;
       display: inline-block; white-space: nowrap;
       opacity: 0; transform: translateY(6px);
       animation: wIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      will-change: opacity, transform;
     }
     .word-box.me { border: 1.5px solid rgba(96,165,250,0.5); }
     .word-box.them { border: 1.5px solid rgba(74,222,128,0.5); }
     .word-box.fade-out { animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
     @keyframes wIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes wOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
 
-    .label-badge {
-      position: absolute; z-index: 15;
-      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-      padding: 4px 12px; border-radius: 16px;
-      font-size: 11px; font-weight: 600; letter-spacing: 1px;
-    }
+    .label-badge { position: absolute; z-index: 15; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; letter-spacing: 1px; }
 
     .controls-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
@@ -96,8 +75,7 @@
     .ctrl {
       width: 50px; height: 50px; border-radius: 50%; border: none;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: transform 0.12s ease, background 0.2s ease; font-size: 19px;
-      background: rgba(255,255,255,0.12); color: #fff;
+      font-size: 19px; background: rgba(255,255,255,0.12); color: #fff;
       -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
     .ctrl:active { transform: scale(0.9); }
@@ -109,23 +87,13 @@
     .listen-status {
       position: fixed; z-index: 20; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-      padding: 5px 12px; border-radius: 14px;
-      font-size: 11px; color: #888; white-space: nowrap;
+      padding: 5px 12px; border-radius: 14px; font-size: 11px; color: #888; white-space: nowrap;
     }
     .listen-status.active { color: #4ade80; }
 
-    .room-badge {
-      position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20;
-      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-      padding: 4px 12px; border-radius: 14px;
-      font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
-    }
+    .room-badge { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 2px; }
 
-    .waiting {
-      position: absolute; inset: 0; z-index: 5;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(15,15,35,0.95);
-    }
+    .waiting { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15,15,35,0.95); }
     .waiting .code { font-size: 32px; font-weight: 800; color: #4ade80; letter-spacing: 5px; margin-bottom: 10px; }
     .waiting .spin { width: 32px; height: 32px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
     .waiting p { color: #666; font-size: 13px; }
@@ -142,7 +110,6 @@
       #halfMe .half-subtitles { bottom: 90px; right: 10px; left: auto; width: 40%; max-width: 260px; }
       .listen-status { bottom: 80px; }
     }
-
     @media (orientation: portrait) {
       .half { left: 0; right: 0; height: 50%; }
       #halfThem { top: 0; }
@@ -150,8 +117,8 @@
       .divider { left: 0; right: 0; top: 50%; height: 1px; transform: translateY(-50%); }
       #halfThem .label-badge { top: 10px; left: 10px; color: #4ade80; }
       #halfMe .label-badge { top: 10px; right: 10px; color: #60a5fa; }
-      #halfThem .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
-      #halfMe .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
+      #halfThem .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; }
+      #halfMe .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; }
       .listen-status { bottom: 76px; }
     }
   </style>
@@ -166,18 +133,15 @@
       <p>Allow camera & mic to start</p>
       <button class="btn btn-perm" id="btnPerm">Allow Camera & Mic</button>
       <div class="perm-status" id="permStatus"></div>
-      <div class="perm-steps" id="permSteps" style="display:none">
+      <div class="perm-steps" id="permSteps">
         <b>Android Chrome:</b> Tap lock icon → Permissions → Allow<br><br>
         <b>iPhone Safari:</b> Settings → Safari → Camera → Allow<br><br>
-        Then <b>reload this page</b> and tap Allow again.
+        Then <b>reload this page</b>.
       </div>
     </div>
     <button class="btn btn-create" id="btnCreate" disabled>Create Room</button>
     <div class="room-list">
-      <div class="room-list-header">
-        <h3>Active Rooms</h3>
-        <button class="btn-sm" onclick="loadRooms()">Refresh</button>
-      </div>
+      <div class="room-list-header"><h3>Active Rooms</h3><button class="btn-sm" onclick="loadRooms()">Refresh</button></div>
       <div id="roomList"><div class="empty-msg">No rooms yet</div></div>
     </div>
   </div>
@@ -217,35 +181,37 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
+    let myInterimGroup = null
+    let myInterimCount = 0
 
     // ============ DEBUG ============
     const dlog = []
-    function debug(msg) {
+    function D(msg) {
       const t = new Date().toLocaleTimeString()
       dlog.push(t + ' ' + msg)
-      if (dlog.length > 15) dlog.shift()
+      if (dlog.length > 20) dlog.shift()
       let el = document.getElementById('dbg')
       if (!el) {
         el = document.createElement('div')
         el.id = 'dbg'
-        el.style.cssText = 'position:fixed;top:40px;left:4px;right:4px;z-index:999;background:rgba(0,0,0,0.9);color:#0f0;font-size:9px;padding:6px;border-radius:6px;font-family:monospace;line-height:1.5;max-height:160px;overflow-y:auto;pointer-events:none;'
+        el.style.cssText = 'position:fixed;top:36px;left:4px;right:4px;z-index:999;background:rgba(0,0,0,0.92);color:#0f0;font-size:9px;padding:6px;border-radius:6px;font-family:monospace;line-height:1.4;max-height:200px;overflow-y:auto;pointer-events:none;'
         document.body.appendChild(el)
       }
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      el.innerHTML = '<b style="color:#ff0">DEBUG</b> | HTTPS:' + (location.protocol==='https:'?'✓':'✗') + ' | SR:' + (SR?'✓':'✗') + '<br>' + dlog.slice(-10).join('<br>')
+      el.innerHTML = '<b style="color:#ff0">DEBUG</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
     }
-    debug('page loaded')
+    D('page loaded | protocol=' + location.protocol)
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
-      debug('requestPermissions start')
+      D('requestPermissions')
       const statusEl = document.getElementById('permStatus')
       const stepsEl = document.getElementById('permSteps')
       const preview = document.getElementById('permPreview')
       const btn = document.getElementById('btnPerm')
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        debug('NO getUserMedia API')
+        D('NO getUserMedia')
         statusEl.textContent = 'Camera not supported'
         statusEl.className = 'perm-status perm-fail'
         return
@@ -257,7 +223,9 @@
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
-        debug('GOT stream: video=' + localStream.getVideoTracks().length + ' audio=' + localStream.getAudioTracks().length)
+        const vt = localStream.getVideoTracks()
+        const at = localStream.getAudioTracks()
+        D('GOT stream: video=' + vt.length + '(' + (vt[0]?vt[0].label:'?') + ') audio=' + at.length + '(' + (at[0]?at[0].label:'?') + ')')
         preview.srcObject = localStream
         preview.classList.add('active')
         statusEl.textContent = 'Camera & mic ready!'
@@ -266,23 +234,23 @@
         btn.style.background = '#22c55e'
         document.getElementById('btnCreate').disabled = false
       } catch (err) {
-        debug('getUserMedia FAILED: ' + err.name)
+        D('FAILED: ' + err.name + ' ' + err.message)
         btn.textContent = 'Tap to Retry'
         btn.disabled = false
         statusEl.textContent = 'Error: ' + err.name
         statusEl.className = 'perm-status perm-fail'
         if (err.name === 'NotAllowedError') stepsEl.style.display = 'block'
-        // Try audio only
         try {
+          D('trying audio only...')
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-          debug('GOT audio only')
+          D('GOT audio only: ' + localStream.getAudioTracks()[0].label)
           statusEl.textContent = 'Mic works (no camera)'
           statusEl.className = 'perm-status perm-ok'
           document.getElementById('btnCreate').disabled = false
           btn.textContent = 'Mic OK ✓'
           btn.style.background = '#22c55e'
           stepsEl.style.display = 'none'
-        } catch (e2) { debug('audio only FAILED: ' + e2.name) }
+        } catch (e2) { D('audio FAILED: ' + e2.name) }
       }
     }
 
@@ -294,11 +262,7 @@
     function renderRooms(rooms) {
       const el = document.getElementById('roomList')
       if (!rooms.length) { el.innerHTML = '<div class="empty-msg">No rooms yet</div>'; return }
-      el.innerHTML = rooms.map(r => `
-        <div class="room-item" onclick="joinRoom('${r.id}')">
-          <div><div class="room-code">${r.id}</div><div class="room-users">${r.users}/2</div></div>
-          <button class="room-join-btn" onclick="event.stopPropagation();joinRoom('${r.id}')">Join</button>
-        </div>`).join('')
+      el.innerHTML = rooms.map(r => '<div class="room-item" onclick="joinRoom(\'' + r.id + '\')"><div><div class="room-code">' + r.id + '</div><div class="room-users">' + r.users + '/2</div></div><button class="room-join-btn" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\')">Join</button></div>').join('')
     }
     socket.on('room-list', renderRooms)
     loadRooms()
@@ -323,7 +287,7 @@
       document.getElementById('roomBadge').textContent = roomId
       document.getElementById('waitingCode').textContent = roomId
       document.getElementById('localVideo').srcObject = localStream
-      debug('showCall: ' + roomId)
+      D('showCall: ' + roomId)
     }
 
     // ============ SPEECH RECOGNITION ============
@@ -331,132 +295,138 @@
     document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
 
     function toggleListening() {
+      D('toggleListening, recognition=' + !!recognition)
       if (recognition) { stopListening(); return }
       startListening()
     }
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) { debug('NO SpeechRecognition API'); alert('Not supported'); return }
+      if (!SR) { D('NO SR API'); alert('Not supported'); return }
+      if (recognition) { D('already running'); return }
 
-      // Check if already running
-      if (recognition) { debug('Already running'); return }
-
-      // Check mic track
+      // Log audio state before starting
       if (localStream) {
-        const audioTracks = localStream.getAudioTracks()
-        debug('Audio tracks: ' + audioTracks.length + ' enabled: ' + (audioTracks[0] ? audioTracks[0].enabled : 'none'))
+        const at = localStream.getAudioTracks()
+        D('pre-start audio: count=' + at.length + ' enabled=' + at.map(t => t.enabled).join(',') + ' readyState=' + at.map(t => t.readyState).join(','))
       }
 
-      recognition = new SR()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = 'en-US'
-      debug('SR created, starting...')
+      const r = new SR()
+      recognition = r
+      r.continuous = true
+      r.interimResults = true
+      r.lang = 'en-US'
+      D('SR created, calling start()...')
 
-      recognition.onstart = () => {
-        debug('SR STARTED - listening')
+      r.onstart = () => {
+        D('SR onstart ✓')
         document.getElementById('btnListen').classList.add('listening')
-        document.getElementById('listenStatus').textContent = 'Listening...'
+        document.getElementById('listenStatus').textContent = 'Listening... speak now'
         document.getElementById('listenStatus').classList.add('active')
       }
 
-      recognition.onresult = (e) => {
-        debug('onresult idx=' + e.resultIndex + ' len=' + e.results.length)
+      r.onresult = (e) => {
+        D('onresult idx=' + e.resultIndex + ' total=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          const result = e.results[i]
-          const text = result[0].transcript.trim()
-          const confidence = Math.round(result[0].confidence * 100)
-          debug((result.isFinal ? 'FINAL' : 'interim') + ' conf=' + confidence + '% "' + text + '"')
+          const res = e.results[i]
+          const text = res[0].transcript.trim()
+          const conf = Math.round(res[0].confidence * 100)
+          D((res.isFinal ? 'FINAL' : 'interim') + ' conf=' + conf + '% "' + text + '"')
           if (!text) continue
-
-          if (result.isFinal) {
-            showWords('subsMe', text, 'me')
+          if (res.isFinal) {
+            addMyWords(text, false)
             socket.emit('chat-message', { to: otherUserId, text })
           } else {
-            showWords('subsMe', text, 'me', true)
+            addMyWords(text, true)
           }
         }
       }
 
-      recognition.onerror = (e) => {
-        debug('SR ERROR: ' + e.error)
+      r.onerror = (e) => {
+        D('SR ERROR: ' + e.error)
         document.getElementById('listenStatus').textContent = 'Error: ' + e.error
       }
 
-      recognition.onend = () => {
-        debug('SR ENDED')
+      r.onend = () => {
+        D('SR onend')
         recognition = null
+        myInterimGroup = null
+        myInterimCount = 0
         document.getElementById('btnListen').classList.remove('listening')
         document.getElementById('listenStatus').textContent = 'Stopped — tap 🗣️'
         document.getElementById('listenStatus').classList.remove('active')
       }
 
       try {
-        recognition.start()
-        debug('recognition.start() called')
+        r.start()
+        D('start() called')
       } catch(e) {
-        debug('start() FAILED: ' + e.message)
-        document.getElementById('listenStatus').textContent = 'Failed: ' + e.message
+        D('start() threw: ' + e.message)
       }
     }
 
     function stopListening() {
-      debug('stopListening')
+      D('stopListening')
       if (recognition) { recognition.stop(); recognition = null }
+      myInterimGroup = null; myInterimCount = 0
       document.getElementById('btnListen').classList.remove('listening')
       document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
       document.getElementById('listenStatus').classList.remove('active')
     }
 
     // ============ SUBTITLES ============
-    let myInterim = null
-    let myInterimWords = []
-
     socket.on('chat-message', ({ text }) => {
-      debug('RECV: "' + text + '"')
-      showWords('subsThem', text, 'them')
+      D('RECV from peer: "' + text + '"')
+      addWords('subsThem', text, 'them', false)
     })
 
-    function showWords(containerId, text, who, isInterim = false) {
+    function addMyWords(text, isInterim) {
+      D('addMyWords interim=' + isInterim)
+      addWords('subsMe', text, 'me', isInterim)
+    }
+
+    function addWords(containerId, text, who, isInterim) {
       const container = document.getElementById(containerId)
-      if (!container) { debug('NO container: ' + containerId); return }
+      if (!container) { D('NO container ' + containerId); return }
 
       const words = text.split(/\s+/).filter(w => w.length > 0)
 
       if (who === 'me' && isInterim) {
-        // For MY interim — reuse same element, only add new words
-        if (!myInterim) {
-          myInterim = document.createElement('div')
-          myInterim.className = 'word-group interim'
-          container.appendChild(myInterim)
+        // MY interim: reuse same group, only add new words
+        if (!myInterimGroup) {
+          myInterimGroup = document.createElement('div')
+          myInterimGroup.className = 'word-group interim'
+          container.appendChild(myInterimGroup)
+          D('created interim group')
         }
-        while (myInterimWords.length < words.length) {
+        while (myInterimCount < words.length) {
           const span = document.createElement('span')
           span.className = 'word-box me'
-          span.textContent = words[myInterimWords.length]
+          span.textContent = words[myInterimCount]
           span.style.animationDuration = '0.15s'
-          myInterim.appendChild(span)
-          myInterimWords.push(1)
+          myInterimGroup.appendChild(span)
+          myInterimCount++
+          D('interim word: ' + words[myInterimCount - 1])
         }
       } else {
-        // For THEM or MY final — create new group
-        if (who === 'me' && myInterim) {
-          myInterim.remove()
-          myInterim = null
-          myInterimWords = []
+        // Remove my interim if converting to final
+        if (who === 'me' && myInterimGroup) {
+          myInterimGroup.remove()
+          myInterimGroup = null
+          myInterimCount = 0
         }
+        // Create new group for final or for them
         const group = document.createElement('div')
         group.className = 'word-group'
         words.forEach((word, i) => {
           const span = document.createElement('span')
           span.className = 'word-box ' + who
           span.textContent = word
-          span.style.animationDelay = `${i * 0.04}s`
+          span.style.animationDelay = (i * 0.04) + 's'
           group.appendChild(span)
         })
         container.appendChild(group)
-        debug('showWords: added ' + words.length + ' to ' + containerId)
+        D('added ' + words.length + ' words to ' + containerId)
         setTimeout(() => {
           group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
           setTimeout(() => { if (group.parentNode) group.remove() }, 650)
@@ -469,6 +439,7 @@
 
     function createPeerConnection(userId) {
       otherUserId = userId
+      D('creating peer for ' + userId)
       peerConnection = new RTCPeerConnection(rtcConfig)
       localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
       peerConnection.onicecandidate = (e) => {
@@ -477,20 +448,20 @@
       peerConnection.ontrack = (e) => {
         document.getElementById('remoteVideo').srcObject = e.streams[0]
         document.getElementById('waitingThem').style.display = 'none'
-        debug('GOT remote track')
+        D('GOT remote track')
       }
       return peerConnection
     }
 
     socket.on('user-joined', async (userId) => {
-      debug('user-joined: ' + userId)
+      D('user-joined: ' + userId)
       const pc = createPeerConnection(userId)
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
       socket.emit('offer', { to: userId, offer })
     })
     socket.on('offer', async ({ from, offer }) => {
-      debug('got offer from ' + from)
+      D('got offer from ' + from)
       otherUserId = from
       const pc = createPeerConnection(from)
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
@@ -499,14 +470,14 @@
       socket.emit('answer', { to: from, answer })
     })
     socket.on('answer', async ({ answer }) => {
-      debug('got answer')
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+      D('got answer')
+      if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
     })
     socket.on('ice-candidate', async ({ candidate }) => {
       if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
     })
     socket.on('user-left', () => {
-      debug('user-left')
+      D('user-left')
       document.getElementById('remoteVideo').srcObject = null
       document.getElementById('waitingThem').style.display = 'flex'
     })
@@ -519,7 +490,7 @@
       const btn = document.getElementById('btnMute')
       btn.classList.toggle('muted', !a.enabled)
       btn.textContent = a.enabled ? '🎤' : '🔇'
-      debug('mute: ' + !a.enabled)
+      D('mute toggled: audio=' + a.enabled)
     })
 
     document.getElementById('btnCam').addEventListener('click', () => {
@@ -529,7 +500,7 @@
       const btn = document.getElementById('btnCam')
       btn.classList.toggle('cam-off', !v.enabled)
       btn.textContent = v.enabled ? '📹' : '📷'
-      debug('cam: ' + v.enabled)
+      D('cam toggled: video=' + v.enabled)
     })
 
     document.getElementById('btnHang').addEventListener('click', () => {
