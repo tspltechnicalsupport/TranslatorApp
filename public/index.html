@@ -282,16 +282,18 @@
       if (!SR) return
       recognition = new SR()
       recognition.continuous = true
-      recognition.interimResults = true
+      recognition.interimResults = false
       recognition.lang = 'auto'
 
       recognition.onresult = (e) => {
-        const last = e.results[e.results.length - 1]
-        const text = last[0].transcript.trim()
-        if (!text) return
-        addSub('subsMe', text, 'me')
-        socket.emit('chat-message', { to: otherUserId, text })
-        if (last.isFinal) translateAndSpeak(text)
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (!e.results[i].isFinal) continue
+          const text = e.results[i][0].transcript.trim()
+          if (!text) return
+          addSub('subsMe', text, 'me')
+          socket.emit('chat-message', { to: otherUserId, text })
+          translateAndSpeak(text)
+        }
       }
       recognition.onerror = () => {}
       recognition.onend = () => { try { recognition.start() } catch(e) {} }
