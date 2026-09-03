@@ -49,20 +49,16 @@
       display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
       justify-content: center; align-items: flex-end; padding: 0 10px;
     }
-    .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
-    .word-group.interim { opacity: 0.5; }
+    .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 4px; }
+    .word-group.interim { opacity: 0.55; }
     .word-box {
       background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
       padding: 6px 14px; border-radius: 10px; font-size: 15px; font-weight: 600; color: #fff;
       display: inline-block; white-space: nowrap;
-      opacity: 0; transform: translateY(6px);
-      animation: wIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border: 1.5px solid rgba(255,255,255,0.3); opacity: 1;
     }
-    .word-box.me { border: 1.5px solid rgba(96,165,250,0.5); }
-    .word-box.them { border: 1.5px solid rgba(74,222,128,0.5); }
-    .word-box.fade-out { animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes wIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes wOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+    .word-box.me { border-color: rgba(96,165,250,0.7); }
+    .word-box.them { border-color: rgba(74,222,128,0.7); }
 
     .label-badge { position: absolute; z-index: 15; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; letter-spacing: 1px; }
 
@@ -181,41 +177,17 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
-    let startingSR = false
     let myInterimGroup = null
     let myInterimCount = 0
-    let shouldKeepListening = false
-    let recognitionGeneration = 0
-
-    // ============ DEBUG ============
-    const dlog = []
-    function D(msg) {
-      console.log('[DEBUG]', msg)
-      const t = new Date().toLocaleTimeString()
-      dlog.push(t + ' ' + msg)
-      if (dlog.length > 20) dlog.shift()
-      let el = document.getElementById('dbg')
-      if (!el) {
-        el = document.createElement('div')
-        el.id = 'dbg'
-        el.style.cssText = 'position:fixed;top:36px;left:4px;right:4px;z-index:999;background:rgba(0,0,0,0.92);color:#0f0;font-size:9px;padding:6px;border-radius:6px;font-family:monospace;line-height:1.4;max-height:200px;overflow-y:auto;pointer-events:none;'
-        document.body.appendChild(el)
-      }
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      el.innerHTML = '<b style="color:#ff0">DEBUG</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
-    }
-    D('page loaded | protocol=' + location.protocol)
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
-      D('requestPermissions')
       const statusEl = document.getElementById('permStatus')
       const stepsEl = document.getElementById('permSteps')
       const preview = document.getElementById('permPreview')
       const btn = document.getElementById('btnPerm')
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        D('NO getUserMedia')
         statusEl.textContent = 'Camera not supported'
         statusEl.className = 'perm-status perm-fail'
         return
@@ -227,9 +199,6 @@
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
-        const vt = localStream.getVideoTracks()
-        const at = localStream.getAudioTracks()
-        D('GOT stream: video=' + vt.length + '(' + (vt[0]?vt[0].label:'?') + ') audio=' + at.length + '(' + (at[0]?at[0].label:'?') + ')')
         preview.srcObject = localStream
         preview.classList.add('active')
         statusEl.textContent = 'Camera & mic ready!'
@@ -238,23 +207,20 @@
         btn.style.background = '#22c55e'
         document.getElementById('btnCreate').disabled = false
       } catch (err) {
-        D('FAILED: ' + err.name + ' ' + err.message)
         btn.textContent = 'Tap to Retry'
         btn.disabled = false
         statusEl.textContent = 'Error: ' + err.name
         statusEl.className = 'perm-status perm-fail'
         if (err.name === 'NotAllowedError') stepsEl.style.display = 'block'
         try {
-          D('trying audio only...')
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-          D('GOT audio only: ' + localStream.getAudioTracks()[0].label)
           statusEl.textContent = 'Mic works (no camera)'
           statusEl.className = 'perm-status perm-ok'
           document.getElementById('btnCreate').disabled = false
           btn.textContent = 'Mic OK ✓'
           btn.style.background = '#22c55e'
           stepsEl.style.display = 'none'
-        } catch (e2) { D('audio FAILED: ' + e2.name) }
+        } catch (e2) {}
       }
     }
 
@@ -291,66 +257,49 @@
       document.getElementById('roomBadge').textContent = roomId
       document.getElementById('waitingCode').textContent = roomId
       document.getElementById('localVideo').srcObject = localStream
-      D('showCall: ' + roomId)
     }
 
     // ============ SPEECH RECOGNITION ============
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+
     document.getElementById('btnListen').addEventListener('click', toggleListening)
     document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
 
     function toggleListening() {
-      D('toggleListening | recognition=' + !!recognition + ' starting=' + startingSR)
-      if (shouldKeepListening) { stopListening() } else { startListening() }
+      if (recognition) { stopListening(); return }
+      startListening()
     }
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) { D('NO SPEECH RECOGNITION API'); alert('Speech recognition is not supported in this browser.'); return }
-      if (shouldKeepListening) { D('already listening'); return }
-      shouldKeepListening = true
-      recognitionGeneration++
-      myInterimGroup = null
-      myInterimCount = 0
-      startRecognitionInstance(recognitionGeneration)
-    }
+      if (!SR) { alert('Speech recognition not supported'); return }
+      if (recognition) return
 
-    function startRecognitionInstance(generation) {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR || !shouldKeepListening) return
-      if (recognition || startingSR) { D('recognition already exists'); return }
-      startingSR = true
       const r = new SR()
       recognition = r
-      r.continuous = false
+
+      // Mobile: continuous=false (auto-restart). PC: continuous=true (fast).
+      r.continuous = !isMobile
       r.interimResults = true
       r.lang = 'en-US'
       r.maxAlternatives = 1
-      D('creating SR instance | lang=en-US')
 
       r.onstart = () => {
-        startingSR = false
-        D('SR onstart ✓')
         document.getElementById('btnListen').classList.add('listening')
-        document.getElementById('listenStatus').textContent = 'Listening... speak now'
+        document.getElementById('listenStatus').textContent = 'Listening...'
         document.getElementById('listenStatus').classList.add('active')
       }
 
       r.onresult = (e) => {
-        D('onresult | index=' + e.resultIndex + ' total=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          const result = e.results[i]
-          if (!result || !result[0]) continue
-          const text = result[0].transcript.trim()
-          const confidence = Math.round((result[0].confidence || 0) * 100)
+          const res = e.results[i]
+          if (!res || !res[0]) continue
+          const text = res[0].transcript.trim()
           if (!text) continue
-          D((result.isFinal ? 'FINAL' : 'INTERIM') + ' | confidence=' + confidence + '% | "' + text + '"')
 
-          if (result.isFinal) {
+          if (res.isFinal) {
             addMyWords(text, false)
-            if (otherUserId) {
-              D('SEND text to peer=' + otherUserId + ' | "' + text + '"')
-              socket.emit('chat-message', { to: otherUserId, text: text })
-            } else { D('CANNOT SEND: otherUserId is null') }
+            if (otherUserId) socket.emit('chat-message', { to: otherUserId, text })
             myInterimGroup = null
             myInterimCount = 0
           } else {
@@ -360,75 +309,43 @@
       }
 
       r.onerror = (e) => {
-        startingSR = false
-        D('SR ERROR: ' + e.error)
-        if (e.error === 'aborted') { D('recognition aborted'); return }
-        if (e.error === 'no-speech') { D('no speech detected'); return }
-        if (e.error === 'audio-capture') { D('AUDIO CAPTURE ERROR'); document.getElementById('listenStatus').textContent = 'Microphone unavailable'; return }
-        if (e.error === 'not-allowed') { D('MICROPHONE PERMISSION DENIED'); shouldKeepListening = false; document.getElementById('listenStatus').textContent = 'Microphone permission denied'; document.getElementById('listenStatus').classList.remove('active'); return }
-        if (e.error === 'network') { D('SPEECH RECOGNITION NETWORK ERROR'); document.getElementById('listenStatus').textContent = 'Speech recognition network error'; return }
-        document.getElementById('listenStatus').textContent = 'Speech error: ' + e.error
+        if (e.error === 'aborted' || e.error === 'no-speech') return
+        if (e.error === 'not-allowed') {
+          document.getElementById('listenStatus').textContent = 'Mic denied'
+          stopListening()
+        }
       }
 
       r.onend = () => {
-        D('SR onend | keepListening=' + shouldKeepListening + ' generation=' + generation)
-        startingSR = false
-        if (recognition === r) { recognition = null }
+        recognition = null
         myInterimGroup = null
         myInterimCount = 0
 
-        if (!shouldKeepListening) {
-          D('SR ended normally because user stopped')
-          document.getElementById('btnListen').classList.remove('listening')
-          document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
-          document.getElementById('listenStatus').classList.remove('active')
+        // Mobile: auto-restart
+        if (isMobile && document.getElementById('btnListen').classList.contains('listening')) {
+          setTimeout(() => { if (document.getElementById('btnListen').classList.contains('listening')) startListening() }, 100)
           return
         }
 
-        D('SR ended while listening → restarting...')
-        document.getElementById('listenStatus').textContent = 'Restarting listening...'
-        setTimeout(() => {
-          if (!shouldKeepListening) return
-          if (generation !== recognitionGeneration) { D('old recognition generation → not restarting'); return }
-          if (recognition || startingSR) { D('already starting → not restarting'); return }
-          D('AUTO RESTART SR')
-          startRecognitionInstance(generation)
-        }, 150)
+        document.getElementById('btnListen').classList.remove('listening')
+        document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
+        document.getElementById('listenStatus').classList.remove('active')
       }
 
-      try {
-        D('calling recognition.start()')
-        r.start()
-      } catch (e) {
-        startingSR = false
-        if (recognition === r) { recognition = null }
-        D('start() threw: ' + e.name + ' | ' + e.message)
-        if (shouldKeepListening) {
-          setTimeout(() => {
-            if (shouldKeepListening && !recognition && !startingSR) {
-              D('retrying start() after exception')
-              startRecognitionInstance(generation)
-            }
-          }, 300)
-        }
+      try { r.start() } catch (e) {
+        recognition = null
+        setTimeout(startListening, 300)
       }
     }
 
     function stopListening() {
-      D('stopListening')
-      shouldKeepListening = false
-      recognitionGeneration++
-      startingSR = false
-      const r = recognition
-      recognition = null
-      if (r) {
-        try {
-          r.onend = null
-          r.onerror = null
-          r.onresult = null
-          r.onstart = null
-          r.stop()
-        } catch (e) { D('stop error: ' + e.message) }
+      if (recognition) {
+        recognition.onend = null
+        recognition.onerror = null
+        recognition.onresult = null
+        recognition.onstart = null
+        try { recognition.stop() } catch (e) {}
+        recognition = null
       }
       myInterimGroup = null
       myInterimCount = 0
@@ -439,60 +356,49 @@
 
     // ============ SUBTITLES ============
     socket.on('chat-message', ({ text }) => {
-      D('RECV from peer: "' + text + '"')
       addWords('subsThem', text, 'them', false)
     })
 
     function addMyWords(text, isInterim) {
-      D('addMyWords interim=' + isInterim)
       addWords('subsMe', text, 'me', isInterim)
     }
 
     function addWords(containerId, text, who, isInterim) {
       const container = document.getElementById(containerId)
-      if (!container) { D('NO container ' + containerId); return }
-
+      if (!container) return
       const words = text.split(/\s+/).filter(w => w.length > 0)
 
       if (who === 'me' && isInterim) {
-        // MY interim: reuse same group, only add new words
         if (!myInterimGroup) {
           myInterimGroup = document.createElement('div')
           myInterimGroup.className = 'word-group interim'
           container.appendChild(myInterimGroup)
-          D('created interim group')
         }
         while (myInterimCount < words.length) {
           const span = document.createElement('span')
           span.className = 'word-box me'
           span.textContent = words[myInterimCount]
-          span.style.animationDuration = '0.15s'
           myInterimGroup.appendChild(span)
           myInterimCount++
-          D('interim word: ' + words[myInterimCount - 1])
         }
       } else {
-        // Remove my interim if converting to final
         if (who === 'me' && myInterimGroup) {
           myInterimGroup.remove()
           myInterimGroup = null
           myInterimCount = 0
         }
-        // Create new group for final or for them
         const group = document.createElement('div')
         group.className = 'word-group'
-        words.forEach((word, i) => {
+        words.forEach(word => {
           const span = document.createElement('span')
           span.className = 'word-box ' + who
           span.textContent = word
-          span.style.animationDelay = (i * 0.04) + 's'
           group.appendChild(span)
         })
         container.appendChild(group)
-        D('added ' + words.length + ' words to ' + containerId)
         setTimeout(() => {
-          group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
-          setTimeout(() => { if (group.parentNode) group.remove() }, 650)
+          group.querySelectorAll('.word-box').forEach(w => w.style.opacity = '0')
+          setTimeout(() => { if (group.parentNode) group.remove() }, 400)
         }, 3500)
       }
     }
@@ -502,7 +408,6 @@
 
     function createPeerConnection(userId) {
       otherUserId = userId
-      D('creating peer for ' + userId)
       peerConnection = new RTCPeerConnection(rtcConfig)
       localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
       peerConnection.onicecandidate = (e) => {
@@ -511,20 +416,17 @@
       peerConnection.ontrack = (e) => {
         document.getElementById('remoteVideo').srcObject = e.streams[0]
         document.getElementById('waitingThem').style.display = 'none'
-        D('GOT remote track')
       }
       return peerConnection
     }
 
     socket.on('user-joined', async (userId) => {
-      D('user-joined: ' + userId)
       const pc = createPeerConnection(userId)
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
       socket.emit('offer', { to: userId, offer })
     })
     socket.on('offer', async ({ from, offer }) => {
-      D('got offer from ' + from)
       otherUserId = from
       const pc = createPeerConnection(from)
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
@@ -533,14 +435,12 @@
       socket.emit('answer', { to: from, answer })
     })
     socket.on('answer', async ({ answer }) => {
-      D('got answer')
       if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
     })
     socket.on('ice-candidate', async ({ candidate }) => {
       if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
     })
     socket.on('user-left', () => {
-      D('user-left')
       document.getElementById('remoteVideo').srcObject = null
       document.getElementById('waitingThem').style.display = 'flex'
     })
@@ -550,20 +450,16 @@
       if (!localStream) return
       const a = localStream.getAudioTracks()[0]
       a.enabled = !a.enabled
-      const btn = document.getElementById('btnMute')
-      btn.classList.toggle('muted', !a.enabled)
-      btn.textContent = a.enabled ? '🎤' : '🔇'
-      D('mute toggled: audio=' + a.enabled)
+      document.getElementById('btnMute').classList.toggle('muted', !a.enabled)
+      document.getElementById('btnMute').textContent = a.enabled ? '🎤' : '🔇'
     })
 
     document.getElementById('btnCam').addEventListener('click', () => {
       if (!localStream) return
       const v = localStream.getVideoTracks()[0]
       v.enabled = !v.enabled
-      const btn = document.getElementById('btnCam')
-      btn.classList.toggle('cam-off', !v.enabled)
-      btn.textContent = v.enabled ? '📹' : '📷'
-      D('cam toggled: video=' + v.enabled)
+      document.getElementById('btnCam').classList.toggle('cam-off', !v.enabled)
+      document.getElementById('btnCam').textContent = v.enabled ? '📹' : '📷'
     })
 
     document.getElementById('btnHang').addEventListener('click', () => {
