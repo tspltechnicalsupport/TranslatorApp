@@ -248,7 +248,6 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
-    let lastInterim = null
 
     const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
 
@@ -368,12 +367,12 @@
           if (!text) continue
 
           if (e.results[i].isFinal) {
-            if (lastInterim) { lastInterim.remove(); lastInterim = null }
-            addSub('subsMe', text, 'me')
+            // Final — show as permanent subtitle
+            addSub('subsMe', text, 'me', false)
             socket.emit('chat-message', { to: otherUserId, text })
           } else {
-            if (lastInterim) lastInterim.remove()
-            lastInterim = addSub('subsMe', text, 'me', true)
+            // Interim — only adds new words, never recreates
+            addSub('subsMe', text, 'me', true)
           }
         }
       }
@@ -392,7 +391,8 @@
     }
 
     function stopListening() {
-      if (recognition) { recognition.stop(); recognition = null; lastInterim = null }
+      if (recognition) { recognition.stop(); recognition = null }
+      interimEl = null; interimWords = []
       document.getElementById('btnListen').classList.remove('listening')
       document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start listening'
       document.getElementById('listenStatus').classList.remove('active')
@@ -401,27 +401,57 @@
     socket.on('chat-message', ({ text }) => { addSub('subsThem', text, 'them') })
 
     // ============ SUBTITLES ============
+    // Persistent interim element — never recreated, only updated
+    let interimEl = null
+    let interimWords = []
+
     function addSub(containerId, text, who, isInterim = false) {
       const container = document.getElementById(containerId)
-      const words = text.split(/\s+/).filter(w => w.length > 0)
-      const group = document.createElement('div')
-      group.className = 'word-group' + (isInterim ? ' interim' : '')
-      words.forEach((word, i) => {
-        const span = document.createElement('span')
-        span.className = 'word-box ' + who
-        span.textContent = word
-        span.style.animationDelay = `${i * 0.04}s`
-        if (isInterim) span.style.animationDuration = '0.2s'
-        group.appendChild(span)
-      })
-      container.appendChild(group)
-      if (!isInterim) {
+      const newWords = text.split(/\s+/).filter(w => w.length > 0)
+
+      if (isInterim) {
+        // Create interim container if it doesn't exist
+        if (!interimEl) {
+          interimEl = document.createElement('div')
+          interimEl.className = 'word-group interim'
+          container.appendChild(interimEl)
+        }
+
+        // Only add words that are NEW (compare count)
+        while (interimWords.length < newWords.length) {
+          const idx = interimWords.length
+          const span = document.createElement('span')
+          span.className = 'word-box ' + who
+          span.textContent = newWords[idx]
+          span.style.animationDuration = '0.15s'
+          interimEl.appendChild(span)
+          interimWords.push(newWords[idx])
+        }
+        return interimEl
+
+      } else {
+        // FINAL — remove interim, show final group
+        if (interimEl) { interimEl.remove(); interimEl = null; interimWords = [] }
+
+        const group = document.createElement('div')
+        group.className = 'word-group'
+        newWords.forEach((word, i) => {
+          const span = document.createElement('span')
+          span.className = 'word-box ' + who
+          span.textContent = word
+          span.style.animationDelay = `${i * 0.04}s`
+          group.appendChild(span)
+        })
+        container.appendChild(group)
+
+        // Fade out after delay
         setTimeout(() => {
           group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
           setTimeout(() => { if (group.parentNode) group.remove() }, 650)
         }, 3500)
+
+        return group
       }
-      return group
     }
 
     // ============ WEBRTC ============
