@@ -258,7 +258,10 @@
       const preview = document.getElementById('permPreview')
       const btn = document.getElementById('btnPerm')
 
+      debugLog('requestPermissions() called')
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        debugLog('ERROR: No getUserMedia API')
         statusEl.textContent = 'Camera not supported — use Chrome or Safari'
         statusEl.className = 'perm-status perm-fail'
         return
@@ -269,9 +272,11 @@
       stepsEl.style.display = 'none'
       btn.textContent = 'Requesting...'
       btn.disabled = true
+      debugLog('Calling getUserMedia...')
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+        debugLog('SUCCESS: Got camera + mic')
         preview.srcObject = localStream
         preview.classList.add('active')
         statusEl.textContent = 'Camera & mic ready!'
@@ -280,7 +285,7 @@
         btn.style.background = '#22c55e'
         document.getElementById('btnCreate').disabled = false
       } catch (err) {
-        console.log('Perm error:', err.name)
+        debugLog('getUserMedia ERROR: ' + err.name + ' - ' + err.message)
         btn.textContent = 'Tap to Retry'
         btn.disabled = false
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -293,14 +298,18 @@
         }
         // Try audio only
         try {
+          debugLog('Trying audio only...')
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          debugLog('SUCCESS: Got mic only')
           statusEl.textContent = 'Mic works! No camera but you can talk.'
           statusEl.className = 'perm-status perm-ok'
           document.getElementById('btnCreate').disabled = false
           btn.textContent = 'Mic Enabled ✓'
           btn.style.background = '#22c55e'
           stepsEl.style.display = 'none'
-        } catch (e2) {}
+        } catch (e2) {
+          debugLog('Audio only also failed: ' + e2.name)
+        }
       }
     }
 
@@ -355,21 +364,27 @@
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) {
+        debugLog('ERROR: No SpeechRecognition API')
         alert('Speech recognition not supported on this browser.\n\nUse Chrome on Android or Safari on iPhone.')
         return
       }
 
+      debugLog('Creating SpeechRecognition...')
       recognition = new SR()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'auto'
+      debugLog('Config: continuous=true, interim=true, lang=auto')
 
       recognition.onresult = (e) => {
+        debugLog('onresult: index=' + e.resultIndex + ' len=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const text = e.results[i][0].transcript.trim()
+          const isFinal = e.results[i].isFinal
+          debugLog((isFinal ? 'FINAL' : 'interim') + ': "' + text + '"')
           if (!text) continue
 
-          if (e.results[i].isFinal) {
+          if (isFinal) {
             addSub('subsMe', text, 'me', false)
             socket.emit('chat-message', { to: otherUserId, text })
           } else {
@@ -379,7 +394,7 @@
       }
 
       recognition.onerror = (e) => {
-        console.log('Speech error:', e.error)
+        debugLog('ERROR: ' + e.error)
         const status = document.getElementById('listenStatus')
         if (e.error === 'not-allowed') {
           status.textContent = 'Mic blocked — allow in settings'
@@ -395,18 +410,19 @@
       }
 
       recognition.onend = () => {
-        // Auto restart if still supposed to be listening
-        if (recognition) try { recognition.start() } catch(e) {}
+        debugLog('onend fired')
+        if (recognition) try { recognition.start(); debugLog('restarted') } catch(e) { debugLog('restart failed: ' + e) }
       }
 
       try {
         recognition.start()
+        debugLog('recognition.start() called')
         document.getElementById('btnListen').classList.add('listening')
         document.getElementById('listenStatus').textContent = 'Listening... speak now'
         document.getElementById('listenStatus').classList.add('active')
       } catch(e) {
-        console.log('Speech start error:', e)
-        document.getElementById('listenStatus').textContent = 'Failed to start: ' + e.message
+        debugLog('start() threw: ' + e.message)
+        document.getElementById('listenStatus').textContent = 'Failed: ' + e.message
       }
     }
 
@@ -542,32 +558,38 @@
     }
 
     // ============ DEBUG PANEL ============
-    function showDebug() {
-      const el = document.createElement('div')
-      el.id = 'debugPanel'
-      el.style.cssText = 'position:fixed;bottom:130px;left:6px;right:6px;z-index:99;background:rgba(0,0,0,0.85);color:#4ade80;font-size:10px;padding:8px 10px;border-radius:8px;font-family:monospace;pointer-events:none;line-height:1.6;'
+    const debugLogs = []
+
+    function debugLog(msg) {
+      const time = new Date().toLocaleTimeString()
+      debugLogs.push(time + ': ' + msg)
+      if (debugLogs.length > 12) debugLogs.shift()
+      updateDebugUI()
+    }
+
+    function updateDebugUI() {
+      let el = document.getElementById('debugPanel')
+      if (!el) {
+        el = document.createElement('div')
+        el.id = 'debugPanel'
+        el.style.cssText = 'position:fixed;top:40px;left:6px;right:6px;z-index:99;background:rgba(0,0,0,0.9);color:#0f0;font-size:9px;padding:8px;border-radius:8px;font-family:monospace;line-height:1.5;max-height:180px;overflow-y:auto;pointer-events:none;'
+        document.body.appendChild(el)
+      }
 
       const ua = navigator.userAgent
-      const isIOS = /iPhone|iPad|iPod/.test(ua)
-      const isAndroid = /Android/.test(ua)
       const isSecure = location.protocol === 'https:' || location.hostname === 'localhost'
-      const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      const hasSR = !!SR
-      const hasWebRTC = !!window.RTCPeerConnection
+      const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
-      el.innerHTML = [
-        'HTTPS: ' + (isSecure ? 'YES' : 'NO'),
-        'Device: ' + (isIOS ? 'iOS' : isAndroid ? 'Android' : 'Desktop'),
-        'Camera: ' + (hasGetUserMedia ? 'YES' : 'NO'),
-        'Speech: ' + (hasSR ? 'YES' : 'NO'),
-        'WebRTC: ' + (hasWebRTC ? 'YES' : 'NO')
-      ].join(' | ')
-
-      document.body.appendChild(el)
-      setTimeout(() => el.remove(), 8000)
+      el.innerHTML = '<b style="color:#ff0">--- DEBUG ---</b><br>' +
+        'Secure: ' + (isSecure ? '✓' : '✗ NO HTTPS') + ' | ' +
+        'SR: ' + (hasSR ? '✓' : '✗') + '<br>' +
+        '<b style="color:#ff0">Logs:</b><br>' +
+        debugLogs.slice(-8).join('<br>')
     }
-    showDebug()
+
+    debugLog('Page loaded')
+    debugLog('Protocol: ' + location.protocol)
+    debugLog('SR available: ' + !!(window.SpeechRecognition || window.webkitSpeechRecognition))
   </script>
 </body>
 </html>
