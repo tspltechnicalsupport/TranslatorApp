@@ -102,7 +102,7 @@
     .controls-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
       display: flex; justify-content: center; gap: 14px;
-      padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding: 16px; padding-bottom: max(50px, env(safe-area-inset-bottom));
       background: linear-gradient(transparent, rgba(0,0,0,0.9));
     }
     .ctrl {
@@ -115,6 +115,16 @@
     .ctrl.muted { background: #ef4444; }
     .ctrl.cam-off { background: #ef4444; }
     .ctrl.hang { background: #ef4444; width: 58px; height: 58px; font-size: 24px; }
+    .ctrl.listening { background: #4ade80; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); } 50% { box-shadow: 0 0 0 10px rgba(74,222,128,0); } }
+
+    .listen-status {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+      padding: 6px 14px; border-radius: 16px;
+      font-size: 11px; color: #888; white-space: nowrap;
+    }
+    .listen-status.active { color: #4ade80; }
 
     /* Room badge */
     .room-badge {
@@ -193,10 +203,12 @@
     <div class="room-badge" id="roomBadge"></div>
 
     <div class="controls-bar">
+      <button class="ctrl" id="btnListen" onclick="toggleListening()" title="Start Listening">🗣️</button>
       <button class="ctrl" id="btnMute" onclick="toggleMute()">🎤</button>
       <button class="ctrl" id="btnCam" onclick="toggleCam()">📹</button>
       <button class="ctrl hang" onclick="hangUp()">📞</button>
     </div>
+    <div class="listen-status" id="listenStatus">Tap 🗣️ to start listening</div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -266,20 +278,24 @@
         showCall(roomId)
       })
     }
-
     function showCall(roomId) {
       document.getElementById('lobby').style.display = 'none'
       document.getElementById('call').classList.add('active')
       document.getElementById('roomBadge').textContent = roomId
       document.getElementById('waitingCode').textContent = roomId
       document.getElementById('localVideo').srcObject = localStream
-      startSpeechRecognition()
     }
 
     // ============ SPEECH RECOGNITION ============
-    function startSpeechRecognition() {
+    function toggleListening() {
+      if (recognition) { stopListening(); return }
+      startListening()
+    }
+
+    function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) return
+      if (!SR) { alert('Speech recognition not supported on this browser'); return }
+
       recognition = new SR()
       recognition.continuous = true
       recognition.interimResults = true
@@ -293,23 +309,35 @@
           if (!text) continue
 
           if (e.results[i].isFinal) {
-            // Remove interim, show final
             if (lastInterim) { lastInterim.remove(); lastInterim = null }
             addSub('subsMe', text, 'me')
             socket.emit('chat-message', { to: otherUserId, text })
             translateAndSpeak(text)
           } else {
-            // Show interim — update same element
             if (lastInterim) lastInterim.remove()
             lastInterim = addSub('subsMe', text, 'me', true)
           }
         }
       }
-      recognition.onerror = () => {}
-      recognition.onend = () => { try { recognition.start() } catch(e) {} }
-      try { recognition.start() } catch(e) {}
+
+      recognition.onerror = (e) => {
+        if (e.error === 'not-allowed') { alert('Microphone access denied'); stopListening() }
+      }
+      recognition.onend = () => { if (recognition) try { recognition.start() } catch(e) {} }
+      try {
+        recognition.start()
+        document.getElementById('btnListen').classList.add('listening')
+        document.getElementById('listenStatus').textContent = 'Listening...'
+        document.getElementById('listenStatus').classList.add('active')
+      } catch(e) {}
     }
 
+    function stopListening() {
+      if (recognition) { recognition.stop(); recognition = null }
+      document.getElementById('btnListen').classList.remove('listening')
+      document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start listening'
+      document.getElementById('listenStatus').classList.remove('active')
+    }
     function addSub(containerId, text, who, isInterim = false) {
       const container = document.getElementById(containerId)
       const words = text.split(/\s+/).filter(w => w.length > 0)
@@ -397,7 +425,7 @@
       btn.textContent = v.enabled ? '📹' : '📷'
     }
     function hangUp() {
-      if (recognition) recognition.stop()
+      stopListening()
       if (peerConnection) peerConnection.close()
       if (localStream) localStream.getTracks().forEach(t => t.stop())
       socket.disconnect()
