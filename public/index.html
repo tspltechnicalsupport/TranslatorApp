@@ -14,7 +14,6 @@
       height: 100vh; height: 100dvh; padding: 20px;
       background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
     }
-
     .lobby-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #4ade80, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .lobby-sub { font-size: 14px; color: #666; margin-bottom: 30px; }
 
@@ -46,95 +45,95 @@
     .room-users { font-size: 12px; color: #666; margin-top: 2px; }
     .room-join-btn { background: #60a5fa; color: #000; padding: 8px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
     .empty-msg { text-align: center; color: #444; font-size: 13px; padding: 20px; }
-
     .perm-status { font-size: 12px; margin-top: 10px; }
     .perm-ok { color: #4ade80; }
     .perm-fail { color: #ef4444; }
 
-    /* ============ CALL VIEW ============ */
-    #call {
-      display: none; position: fixed; inset: 0; background: #000;
-    }
-    #call.active { display: flex; flex-direction: column; }
+    /* ============ CALL — SPLIT SCREEN ============ */
+    #call { display: none; position: fixed; inset: 0; background: #000; }
+    #call.active { display: flex; }
 
-    .video-container {
-      flex: 1; position: relative; display: flex; flex-direction: column;
+    /* Landscape: side by side */
+    .split { display: flex; width: 100%; height: 100%; }
+    .half {
+      flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
     }
-
-    /* Remote video fills entire screen */
-    .video-remote {
+    .half video {
       position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111;
     }
 
-    /* Local video is a small pip in top-right */
-    .video-local {
-      position: absolute; top: 16px; right: 16px; width: 110px; height: 82px;
-      border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);
-      z-index: 10; background: #222;
-    }
+    /* Divider line between the two */
+    .split .half:first-child { border-right: 1px solid rgba(255,255,255,0.1); }
 
-    /* Subtitle bar at bottom */
-    .subtitle-bar {
-      position: absolute; bottom: 90px; left: 16px; right: 16px; z-index: 10;
-      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+    /* Subtitle overlay on each half */
+    .half-subtitles {
+      position: absolute; bottom: 70px; left: 12px; right: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 4px; pointer-events: none;
     }
-    .subtitle {
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
-      padding: 10px 16px; border-radius: 10px;
-      font-size: 15px; line-height: 1.4; color: #fff;
-      max-width: 85%; animation: fadeIn 0.3s ease;
-      border-left: 3px solid #4ade80;
+    .sub {
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      padding: 8px 12px; border-radius: 8px;
+      font-size: 13px; line-height: 1.4; color: #fff;
+      max-width: 90%; animation: subIn 0.25s ease;
     }
-    .subtitle.speaker-me { border-left-color: #60a5fa; margin-left: auto; }
-    .subtitle .label { font-size: 10px; color: #888; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+    .sub.me { border-left: 3px solid #60a5fa; }
+    .sub.them { border-left: 3px solid #4ade80; }
+    .sub .who { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes subIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Bottom controls */
-    .call-controls {
-      position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
-      display: flex; justify-content: center; gap: 16px;
-      padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom));
-      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    /* Label badges */
+    .label-badge {
+      position: absolute; top: 12px; z-index: 10;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+      padding: 4px 12px; border-radius: 16px;
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
     }
-    .ctrl-btn {
-      width: 56px; height: 56px; border-radius: 50%; border: none;
+    .half:first-child .label-badge { left: 12px; color: #4ade80; }
+    .half:last-child .label-badge { right: 12px; color: #60a5fa; }
+
+    /* Controls bar */
+    .controls-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      display: flex; justify-content: center; gap: 14px;
+      padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom));
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+    }
+    .ctrl {
+      width: 52px; height: 52px; border-radius: 50%; border: none;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.2s; font-size: 22px;
+      cursor: pointer; transition: all 0.15s; font-size: 20px;
+      background: rgba(255,255,255,0.12); color: #fff;
     }
-    .ctrl-btn:active { transform: scale(0.9); }
-    .ctrl-mute { background: rgba(255,255,255,0.15); color: #fff; }
-    .ctrl-mute.muted { background: #ef4444; color: #fff; }
-    .ctrl-cam { background: rgba(255,255,255,0.15); color: #fff; }
-    .ctrl-cam.off { background: #ef4444; color: #fff; }
-    .ctrl-hang { background: #ef4444; color: #fff; width: 64px; height: 64px; font-size: 26px; }
+    .ctrl:active { transform: scale(0.9); }
+    .ctrl.muted { background: #ef4444; }
+    .ctrl.cam-off { background: #ef4444; }
+    .ctrl.hang { background: #ef4444; width: 58px; height: 58px; font-size: 24px; }
 
-    /* Room code badge */
+    /* Room badge */
     .room-badge {
-      position: absolute; top: 16px; left: 16px; z-index: 10;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-      padding: 6px 14px; border-radius: 20px;
-      font-size: 12px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+      padding: 5px 14px; border-radius: 16px;
+      font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
     }
 
-    /* Status */
-    .call-status {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 5; text-align: center;
+    /* Waiting */
+    .waiting {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(15,15,35,0.95);
     }
-    .call-status .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
-    .call-status p { color: #888; font-size: 14px; }
+    .waiting .code { font-size: 36px; font-weight: 800; color: #4ade80; letter-spacing: 6px; margin-bottom: 12px; }
+    .waiting .spin { width: 36px; height: 36px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    .waiting p { color: #666; font-size: 13px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Waiting overlay */
-    .waiting-overlay {
-      position: absolute; inset: 0; z-index: 8;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: #0f0f23;
+    /* ============ VERTICAL (PORTRAIT) ============ */
+    @media (orientation: portrait) {
+      .split { flex-direction: column; }
+      .half:first-child { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
     }
-    .waiting-overlay .spinner { width: 48px; height: 48px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
-    .waiting-overlay p { color: #666; font-size: 14px; }
-    .waiting-overlay .code { font-size: 36px; font-weight: 800; color: #4ade80; letter-spacing: 6px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -162,27 +161,35 @@
     </div>
   </div>
 
-  <!-- CALL -->
+  <!-- CALL — SPLIT SCREEN -->
   <div id="call">
-    <div class="video-container">
-      <video class="video-remote" id="remoteVideo" autoplay playsinline></video>
-      <video class="video-local" id="localVideo" autoplay muted playsinline></video>
-
-      <div class="room-badge" id="roomBadge"></div>
-
-      <div class="waiting-overlay" id="waitingOverlay">
-        <div class="code" id="waitingCode"></div>
-        <div class="spinner"></div>
-        <p>Waiting for someone to join...</p>
+    <div class="split">
+      <!-- LEFT/TOP: Remote (them) -->
+      <div class="half">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="label-badge">THEM</div>
+        <div class="half-subtitles" id="subsThem"></div>
+        <div class="waiting" id="waitingThem">
+          <div class="code" id="waitingCode"></div>
+          <div class="spin"></div>
+          <p>Waiting for someone to join...</p>
+        </div>
       </div>
 
-      <div class="subtitle-bar" id="subtitleBar"></div>
-
-      <div class="call-controls">
-        <button class="ctrl-btn ctrl-mute" id="btnMute" onclick="toggleMute()" title="Mute">🎤</button>
-        <button class="ctrl-btn ctrl-cam" id="btnCam" onclick="toggleCam()" title="Camera">📹</button>
-        <button class="ctrl-btn ctrl-hang" onclick="hangUp()" title="Hang Up">📞</button>
+      <!-- RIGHT/BOTTOM: Local (you) -->
+      <div class="half">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="label-badge">YOU</div>
+        <div class="half-subtitles" id="subsMe"></div>
       </div>
+    </div>
+
+    <div class="room-badge" id="roomBadge"></div>
+
+    <div class="controls-bar">
+      <button class="ctrl" id="btnMute" onclick="toggleMute()">🎤</button>
+      <button class="ctrl" id="btnCam" onclick="toggleCam()">📹</button>
+      <button class="ctrl hang" onclick="hangUp()">📞</button>
     </div>
   </div>
 
@@ -265,10 +272,9 @@
 
     // ============ SPEECH RECOGNITION ============
     function startSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SpeechRecognition) { console.log('Speech recognition not supported'); return }
-
-      recognition = new SpeechRecognition()
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SR) return
+      recognition = new SR()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'auto'
@@ -277,52 +283,44 @@
         const last = e.results[e.results.length - 1]
         const text = last[0].transcript.trim()
         if (!text) return
-
-        addSubtitle(text, 'me')
+        addSub('subsMe', text, 'me')
         socket.emit('chat-message', { to: otherUserId, text })
-
-        if (last.isFinal) {
-          translateAndSpeak(text)
-        }
+        if (last.isFinal) translateAndSpeak(text)
       }
-
-      recognition.onerror = (e) => { if (e.error !== 'no-speech') console.log('Speech error:', e.error) }
+      recognition.onerror = () => {}
       recognition.onend = () => { try { recognition.start() } catch(e) {} }
       try { recognition.start() } catch(e) {}
     }
 
-    function addSubtitle(text, who) {
-      const bar = document.getElementById('subtitleBar')
+    function addSub(containerId, text, who) {
+      const container = document.getElementById(containerId)
       const div = document.createElement('div')
-      div.className = 'subtitle' + (who === 'me' ? ' speaker-me' : '')
-      div.innerHTML = `<div class="label">${who === 'me' ? 'You' : 'Them'}</div>${text}`
-      bar.appendChild(div)
-      if (bar.children.length > 4) bar.removeChild(bar.firstChild)
-      bar.scrollTop = bar.scrollHeight
-    }
-
-    // ============ TRANSLATION (placeholder — will connect to Google API) ============
-    async function translateAndSpeak(text) {
-      // For now, just show the text. Translation will be added next.
-      console.log('Would translate:', text)
+      div.className = 'sub ' + who
+      div.innerHTML = `<div class="who">${who === 'me' ? 'You' : 'Them'}</div>${text}`
+      container.appendChild(div)
+      if (container.children.length > 3) container.removeChild(container.firstChild)
     }
 
     socket.on('chat-message', ({ text }) => {
-      addSubtitle(text, 'them')
+      addSub('subsThem', text, 'them')
     })
+
+    // ============ TRANSLATION (placeholder) ============
+    async function translateAndSpeak(text) {
+      console.log('Would translate:', text)
+    }
 
     // ============ WEBRTC ============
     function createPeerConnection(userId) {
       otherUserId = userId
       peerConnection = new RTCPeerConnection(config)
       localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
-
       peerConnection.onicecandidate = (e) => {
         if (e.candidate && otherUserId) socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
       }
       peerConnection.ontrack = (e) => {
         document.getElementById('remoteVideo').srcObject = e.streams[0]
-        document.getElementById('waitingOverlay').style.display = 'none'
+        document.getElementById('waitingThem').style.display = 'none'
       }
       return peerConnection
     }
@@ -333,7 +331,6 @@
       await pc.setLocalDescription(offer)
       socket.emit('offer', { to: userId, offer })
     })
-
     socket.on('offer', async ({ from, offer }) => {
       otherUserId = from
       const pc = createPeerConnection(from)
@@ -342,35 +339,32 @@
       await pc.setLocalDescription(answer)
       socket.emit('answer', { to: from, answer })
     })
-
     socket.on('answer', async ({ answer }) => {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
     })
-
     socket.on('ice-candidate', async ({ candidate }) => {
       if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
     })
-
     socket.on('user-left', () => {
       document.getElementById('remoteVideo').srcObject = null
-      document.getElementById('waitingOverlay').style.display = 'flex'
+      document.getElementById('waitingThem').style.display = 'flex'
     })
 
     // ============ CONTROLS ============
     function toggleMute() {
-      const audio = localStream.getAudioTracks()[0]
-      audio.enabled = !audio.enabled
-      document.getElementById('btnMute').classList.toggle('muted', !audio.enabled)
-      document.getElementById('btnMute').textContent = audio.enabled ? '🎤' : '🔇'
+      const a = localStream.getAudioTracks()[0]
+      a.enabled = !a.enabled
+      const btn = document.getElementById('btnMute')
+      btn.classList.toggle('muted', !a.enabled)
+      btn.textContent = a.enabled ? '🎤' : '🔇'
     }
-
     function toggleCam() {
-      const video = localStream.getVideoTracks()[0]
-      video.enabled = !video.enabled
-      document.getElementById('btnCam').classList.toggle('off', !video.enabled)
-      document.getElementById('btnCam').textContent = video.enabled ? '📹' : '📷'
+      const v = localStream.getVideoTracks()[0]
+      v.enabled = !v.enabled
+      const btn = document.getElementById('btnCam')
+      btn.classList.toggle('cam-off', !v.enabled)
+      btn.textContent = v.enabled ? '📹' : '📷'
     }
-
     function hangUp() {
       if (recognition) recognition.stop()
       if (peerConnection) peerConnection.close()
