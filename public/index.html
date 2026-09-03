@@ -185,11 +185,15 @@
     let myInterimCount = 0
 
     // ============ DEBUG ============
+    const ua = navigator.userAgent
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua)
+    const DEVICE = isMobile ? '📱MOBILE' : '💻PC'
     const dlog = []
     function D(msg) {
-      console.log('[DEBUG]', msg)
+      const tagged = DEVICE + ' | ' + msg
+      console.log(tagged)
       const t = new Date().toLocaleTimeString()
-      dlog.push(t + ' ' + msg)
+      dlog.push(t + ' ' + tagged)
       if (dlog.length > 20) dlog.shift()
       let el = document.getElementById('dbg')
       if (!el) {
@@ -199,9 +203,9 @@
         document.body.appendChild(el)
       }
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      el.innerHTML = '<b style="color:#ff0">DEBUG</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
+      el.innerHTML = '<b style="color:#ff0">' + DEVICE + '</b> HTTPS:' + (location.protocol==='https:'?'Y':'N') + ' SR:' + (SR?'Y':'N') + '<br>' + dlog.slice(-12).join('<br>')
     }
-    D('page loaded | protocol=' + location.protocol)
+    D('page loaded | protocol=' + location.protocol + ' | ua=' + ua.substring(0, 60))
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
