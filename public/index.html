@@ -156,26 +156,26 @@
     /* ============ LANDSCAPE ============ */
     @media (orientation: landscape) {
       .half { top: 0; bottom: 0; width: 50%; }
-      .half:first-child { left: 0; }
-      .half:last-child { right: 0; left: auto; }
+      #halfThem { left: 0; }
+      #halfMe { left: 50%; }
       .divider { top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); }
-      .half:first-child .label-badge { top: 10px; left: 10px; color: #4ade80; }
-      .half:last-child .label-badge { top: 10px; right: 10px; color: #60a5fa; }
-      .half:first-child .half-subtitles { bottom: 90px; left: 10px; width: 40%; max-width: 260px; }
-      .half:last-child .half-subtitles { bottom: 90px; right: 10px; left: auto; width: 40%; max-width: 260px; }
+      #halfThem .label-badge { top: 10px; left: 10px; color: #4ade80; }
+      #halfMe .label-badge { top: 10px; right: 10px; color: #60a5fa; }
+      #halfThem .half-subtitles { bottom: 90px; left: 10px; width: 40%; max-width: 260px; }
+      #halfMe .half-subtitles { bottom: 90px; right: 10px; left: auto; width: 40%; max-width: 260px; }
       .listen-status { bottom: 80px; }
     }
 
     /* ============ PORTRAIT ============ */
     @media (orientation: portrait) {
       .half { left: 0; right: 0; height: 50%; }
-      .half:first-child { top: 0; }
-      .half:last-child { top: 50%; bottom: 0; }
+      #halfThem { top: 0; }
+      #halfMe { top: 50%; }
       .divider { left: 0; right: 0; top: 50%; height: 1px; transform: translateY(-50%); }
-      .half:first-child .label-badge { top: 10px; left: 10px; color: #4ade80; }
-      .half:last-child .label-badge { top: 10px; right: 10px; color: #60a5fa; }
-      .half:first-child .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
-      .half:last-child .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
+      #halfThem .label-badge { top: 10px; left: 10px; color: #4ade80; }
+      #halfMe .label-badge { top: 10px; right: 10px; color: #60a5fa; }
+      #halfThem .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
+      #halfMe .half-subtitles { bottom: 14px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 320px; }
       .listen-status { bottom: 76px; }
     }
   </style>
