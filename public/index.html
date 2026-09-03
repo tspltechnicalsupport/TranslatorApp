@@ -187,6 +187,7 @@
     // ============ DEBUG ============
     const dlog = []
     function D(msg) {
+      console.log('[DEBUG]', msg)
       const t = new Date().toLocaleTimeString()
       dlog.push(t + ' ' + msg)
       if (dlog.length > 20) dlog.shift()
@@ -315,8 +316,8 @@
       recognition = r
       r.continuous = true
       r.interimResults = true
-      r.lang = 'en-US'
-      D('SR created, calling start()...')
+      r.lang = ''
+      D('SR created, lang=auto, calling start()...')
 
       r.onstart = () => {
         D('SR onstart ✓')
