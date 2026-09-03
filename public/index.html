@@ -437,23 +437,24 @@
     socket.on('chat-message', ({ text }) => { addSub('subsThem', text, 'them') })
 
     // ============ SUBTITLES ============
-    // Persistent interim element — never recreated, only updated
     let interimEl = null
     let interimWords = []
 
     function addSub(containerId, text, who, isInterim = false) {
+      debugLog('addSub: ' + containerId + ' interim=' + isInterim + ' "' + text + '"')
       const container = document.getElementById(containerId)
+      if (!container) { debugLog('ERROR: container not found: ' + containerId); return }
+
       const newWords = text.split(/\s+/).filter(w => w.length > 0)
 
       if (isInterim) {
-        // Create interim container if it doesn't exist
         if (!interimEl) {
           interimEl = document.createElement('div')
           interimEl.className = 'word-group interim'
           container.appendChild(interimEl)
+          debugLog('Created interim container')
         }
 
-        // Only add words that are NEW (compare count)
         while (interimWords.length < newWords.length) {
           const idx = interimWords.length
           const span = document.createElement('span')
@@ -462,11 +463,11 @@
           span.style.animationDuration = '0.15s'
           interimEl.appendChild(span)
           interimWords.push(newWords[idx])
+          debugLog('Added interim word: ' + newWords[idx])
         }
         return interimEl
 
       } else {
-        // FINAL — remove interim, show final group
         if (interimEl) { interimEl.remove(); interimEl = null; interimWords = [] }
 
         const group = document.createElement('div')
@@ -479,8 +480,8 @@
           group.appendChild(span)
         })
         container.appendChild(group)
+        debugLog('Added final group with ' + newWords.length + ' words')
 
-        // Fade out after delay
         setTimeout(() => {
           group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
           setTimeout(() => { if (group.parentNode) group.remove() }, 650)
