@@ -8,7 +8,6 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; -webkit-user-select: none; user-select: none; }
 
-    /* ============ LOBBY ============ */
     #lobby {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100dvh; padding: 20px;
@@ -25,7 +24,7 @@
     .perm-preview.active { border-color: #4ade80; }
     .perm-steps { text-align: left; font-size: 11px; color: #666; margin-top: 10px; line-height: 1.8; }
     .perm-steps b { color: #f59e0b; }
-    .btn { padding: 14px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; width: 100%; max-width: 340px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 52px; }
+    .btn { padding: 14px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s ease; width: 100%; max-width: 340px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 52px; }
     .btn:active { transform: scale(0.97); }
     .btn-perm { background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; }
     .btn-create { background: linear-gradient(135deg, #4ade80, #22c55e); color: #000; margin-bottom: 10px; }
@@ -48,31 +47,21 @@
     .perm-ok { color: #4ade80; }
     .perm-fail { color: #ef4444; }
 
-    /* ============ CALL — SPLIT SCREEN ============ */
     #call { display: none; position: fixed; inset: 0; background: #000; }
     #call.active { display: block; }
 
-    .half {
-      position: absolute; overflow: hidden;
-    }
-    .half video {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111;
-    }
+    .half { position: absolute; overflow: hidden; }
+    .half video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111; }
 
-    /* Divider */
     .divider { position: absolute; z-index: 12; background: rgba(255,255,255,0.15); }
 
-    /* Subtitles — centered in each half, easy to read */
     .half-subtitles {
       position: absolute; z-index: 15;
       display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
       justify-content: center; align-items: flex-end;
       padding: 0 10px;
     }
-
-    .word-group {
-      display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
-    }
+    .word-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
     .word-group.interim { opacity: 0.5; }
 
     .word-box {
@@ -86,20 +75,11 @@
     }
     .word-box.me { border: 1.5px solid rgba(96,165,250,0.5); }
     .word-box.them { border: 1.5px solid rgba(74,222,128,0.5); }
-    .word-box.fade-out {
-      animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
+    .word-box.fade-out { animation: wOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-    @keyframes wIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes wOut {
-      from { opacity: 1; transform: translateY(0); }
-      to { opacity: 0; transform: translateY(-4px); }
-    }
+    @keyframes wIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes wOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
 
-    /* Label badges */
     .label-badge {
       position: absolute; z-index: 15;
       background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
@@ -107,7 +87,6 @@
       font-size: 11px; font-weight: 600; letter-spacing: 1px;
     }
 
-    /* Controls bar */
     .controls-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
       display: flex; justify-content: center; gap: 12px;
@@ -142,7 +121,6 @@
       font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
     }
 
-    /* Waiting */
     .waiting {
       position: absolute; inset: 0; z-index: 5;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -153,7 +131,6 @@
     .waiting p { color: #666; font-size: 13px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ============ LANDSCAPE ============ */
     @media (orientation: landscape) {
       .half { top: 0; bottom: 0; width: 50%; }
       #halfThem { left: 0; }
@@ -166,7 +143,6 @@
       .listen-status { bottom: 80px; }
     }
 
-    /* ============ PORTRAIT ============ */
     @media (orientation: portrait) {
       .half { left: 0; right: 0; height: 50%; }
       #halfThem { top: 0; }
@@ -182,27 +158,21 @@
 </head>
 <body>
 
-  <!-- LOBBY -->
   <div id="lobby">
     <div class="lobby-title">Translator Call</div>
     <div class="lobby-sub">Speak any language. They hear theirs.</div>
-
     <div class="perm-box">
       <video class="perm-preview" id="permPreview" autoplay muted playsinline></video>
       <p>Allow camera & mic to start</p>
       <button class="btn btn-perm" id="btnPerm">Allow Camera & Mic</button>
       <div class="perm-status" id="permStatus"></div>
       <div class="perm-steps" id="permSteps" style="display:none">
-        <b>Android Chrome:</b><br>
-        Tap the lock icon → Permissions → Allow<br><br>
-        <b>iPhone Safari:</b><br>
-        Settings → Safari → Camera → Allow<br><br>
+        <b>Android Chrome:</b> Tap lock icon → Permissions → Allow<br><br>
+        <b>iPhone Safari:</b> Settings → Safari → Camera → Allow<br><br>
         Then <b>reload this page</b> and tap Allow again.
       </div>
     </div>
-
     <button class="btn btn-create" id="btnCreate" disabled>Create Room</button>
-
     <div class="room-list">
       <div class="room-list-header">
         <h3>Active Rooms</h3>
@@ -212,7 +182,6 @@
     </div>
   </div>
 
-  <!-- CALL -->
   <div id="call">
     <div class="half" id="halfThem">
       <video id="remoteVideo" autoplay playsinline></video>
@@ -231,12 +200,12 @@
     </div>
     <div class="divider"></div>
     <div class="room-badge" id="roomBadge"></div>
-    <div class="listen-status" id="listenStatus">Tap 🗣️ to start listening</div>
+    <div class="listen-status" id="listenStatus">Tap 🗣️ to start</div>
     <div class="controls-bar">
-      <button class="ctrl" id="btnListen" title="Start Listening">🗣️</button>
-      <button class="ctrl" id="btnMute" title="Mute">🎤</button>
-      <button class="ctrl" id="btnCam" title="Camera">📹</button>
-      <button class="ctrl hang" id="btnHang" title="Hang Up">📞</button>
+      <button class="ctrl" id="btnListen">🗣️</button>
+      <button class="ctrl" id="btnMute">🎤</button>
+      <button class="ctrl" id="btnCam">📹</button>
+      <button class="ctrl hang" id="btnHang">📞</button>
     </div>
   </div>
 
@@ -249,34 +218,46 @@
     let otherUserId = null
     let recognition = null
 
-    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
+    // ============ DEBUG ============
+    const dlog = []
+    function debug(msg) {
+      const t = new Date().toLocaleTimeString()
+      dlog.push(t + ' ' + msg)
+      if (dlog.length > 15) dlog.shift()
+      let el = document.getElementById('dbg')
+      if (!el) {
+        el = document.createElement('div')
+        el.id = 'dbg'
+        el.style.cssText = 'position:fixed;top:40px;left:4px;right:4px;z-index:999;background:rgba(0,0,0,0.9);color:#0f0;font-size:9px;padding:6px;border-radius:6px;font-family:monospace;line-height:1.5;max-height:160px;overflow-y:auto;pointer-events:none;'
+        document.body.appendChild(el)
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+      el.innerHTML = '<b style="color:#ff0">DEBUG</b> | HTTPS:' + (location.protocol==='https:'?'✓':'✗') + ' | SR:' + (SR?'✓':'✗') + '<br>' + dlog.slice(-10).join('<br>')
+    }
+    debug('page loaded')
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
+      debug('requestPermissions start')
       const statusEl = document.getElementById('permStatus')
       const stepsEl = document.getElementById('permSteps')
       const preview = document.getElementById('permPreview')
       const btn = document.getElementById('btnPerm')
 
-      debugLog('requestPermissions() called')
-
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        debugLog('ERROR: No getUserMedia API')
-        statusEl.textContent = 'Camera not supported — use Chrome or Safari'
+        debug('NO getUserMedia API')
+        statusEl.textContent = 'Camera not supported'
         statusEl.className = 'perm-status perm-fail'
         return
       }
 
-      statusEl.textContent = 'Requesting access...'
-      statusEl.className = 'perm-status'
-      stepsEl.style.display = 'none'
       btn.textContent = 'Requesting...'
       btn.disabled = true
-      debugLog('Calling getUserMedia...')
+      stepsEl.style.display = 'none'
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
-        debugLog('SUCCESS: Got camera + mic')
+        debug('GOT stream: video=' + localStream.getVideoTracks().length + ' audio=' + localStream.getAudioTracks().length)
         preview.srcObject = localStream
         preview.classList.add('active')
         statusEl.textContent = 'Camera & mic ready!'
@@ -285,36 +266,28 @@
         btn.style.background = '#22c55e'
         document.getElementById('btnCreate').disabled = false
       } catch (err) {
-        debugLog('getUserMedia ERROR: ' + err.name + ' - ' + err.message)
+        debug('getUserMedia FAILED: ' + err.name)
         btn.textContent = 'Tap to Retry'
         btn.disabled = false
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          statusEl.textContent = 'Denied — see how to fix below'
-          statusEl.className = 'perm-status perm-fail'
-          stepsEl.style.display = 'block'
-        } else {
-          statusEl.textContent = 'Error: ' + err.name
-          statusEl.className = 'perm-status perm-fail'
-        }
+        statusEl.textContent = 'Error: ' + err.name
+        statusEl.className = 'perm-status perm-fail'
+        if (err.name === 'NotAllowedError') stepsEl.style.display = 'block'
         // Try audio only
         try {
-          debugLog('Trying audio only...')
           localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-          debugLog('SUCCESS: Got mic only')
-          statusEl.textContent = 'Mic works! No camera but you can talk.'
+          debug('GOT audio only')
+          statusEl.textContent = 'Mic works (no camera)'
           statusEl.className = 'perm-status perm-ok'
           document.getElementById('btnCreate').disabled = false
-          btn.textContent = 'Mic Enabled ✓'
+          btn.textContent = 'Mic OK ✓'
           btn.style.background = '#22c55e'
           stepsEl.style.display = 'none'
-        } catch (e2) {
-          debugLog('Audio only also failed: ' + e2.name)
-        }
+        } catch (e2) { debug('audio only FAILED: ' + e2.name) }
       }
     }
 
     document.getElementById('btnPerm').addEventListener('click', requestPermissions)
-    document.getElementById('btnPerm').addEventListener('touchend', function(e) { e.preventDefault(); requestPermissions() })
+    document.getElementById('btnPerm').addEventListener('touchend', e => { e.preventDefault(); requestPermissions() })
 
     // ============ ROOMS ============
     function loadRooms() { socket.emit('get-rooms', renderRooms) }
@@ -323,14 +296,14 @@
       if (!rooms.length) { el.innerHTML = '<div class="empty-msg">No rooms yet</div>'; return }
       el.innerHTML = rooms.map(r => `
         <div class="room-item" onclick="joinRoom('${r.id}')">
-          <div><div class="room-code">${r.id}</div><div class="room-users">${r.users}/2 users</div></div>
+          <div><div class="room-code">${r.id}</div><div class="room-users">${r.users}/2</div></div>
           <button class="room-join-btn" onclick="event.stopPropagation();joinRoom('${r.id}')">Join</button>
         </div>`).join('')
     }
     socket.on('room-list', renderRooms)
     loadRooms()
 
-    document.getElementById('btnCreate').addEventListener('click', async function() {
+    document.getElementById('btnCreate').addEventListener('click', () => {
       if (!localStream) return
       socket.emit('create-room', (roomId) => { currentRoom = roomId; showCall(roomId) })
     })
@@ -350,11 +323,12 @@
       document.getElementById('roomBadge').textContent = roomId
       document.getElementById('waitingCode').textContent = roomId
       document.getElementById('localVideo').srcObject = localStream
+      debug('showCall: ' + roomId)
     }
 
-    // ============ SPEECH ============
+    // ============ SPEECH RECOGNITION ============
     document.getElementById('btnListen').addEventListener('click', toggleListening)
-    document.getElementById('btnListen').addEventListener('touchend', function(e) { e.preventDefault(); toggleListening() })
+    document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
 
     function toggleListening() {
       if (recognition) { stopListening(); return }
@@ -363,124 +337,118 @@
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) {
-        debugLog('ERROR: No SpeechRecognition API')
-        alert('Speech recognition not supported on this browser.\n\nUse Chrome on Android or Safari on iPhone.')
-        return
+      if (!SR) { debug('NO SpeechRecognition API'); alert('Not supported'); return }
+
+      // Check if already running
+      if (recognition) { debug('Already running'); return }
+
+      // Check mic track
+      if (localStream) {
+        const audioTracks = localStream.getAudioTracks()
+        debug('Audio tracks: ' + audioTracks.length + ' enabled: ' + (audioTracks[0] ? audioTracks[0].enabled : 'none'))
       }
 
-      debugLog('Creating SpeechRecognition...')
       recognition = new SR()
       recognition.continuous = true
       recognition.interimResults = true
-      recognition.lang = 'auto'
-      debugLog('Config: continuous=true, interim=true, lang=auto')
+      recognition.lang = 'en-US'
+      debug('SR created, starting...')
+
+      recognition.onstart = () => {
+        debug('SR STARTED - listening')
+        document.getElementById('btnListen').classList.add('listening')
+        document.getElementById('listenStatus').textContent = 'Listening...'
+        document.getElementById('listenStatus').classList.add('active')
+      }
 
       recognition.onresult = (e) => {
-        debugLog('onresult: index=' + e.resultIndex + ' len=' + e.results.length)
+        debug('onresult idx=' + e.resultIndex + ' len=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          const text = e.results[i][0].transcript.trim()
-          const isFinal = e.results[i].isFinal
-          debugLog((isFinal ? 'FINAL' : 'interim') + ': "' + text + '"')
+          const result = e.results[i]
+          const text = result[0].transcript.trim()
+          const confidence = Math.round(result[0].confidence * 100)
+          debug((result.isFinal ? 'FINAL' : 'interim') + ' conf=' + confidence + '% "' + text + '"')
           if (!text) continue
 
-          if (isFinal) {
-            addSub('subsMe', text, 'me', false)
+          if (result.isFinal) {
+            showWords('subsMe', text, 'me')
             socket.emit('chat-message', { to: otherUserId, text })
           } else {
-            addSub('subsMe', text, 'me', true)
+            showWords('subsMe', text, 'me', true)
           }
         }
       }
 
       recognition.onerror = (e) => {
-        debugLog('ERROR: ' + e.error)
-        const status = document.getElementById('listenStatus')
-        if (e.error === 'not-allowed') {
-          status.textContent = 'Mic blocked — allow in settings'
-          status.classList.remove('active')
-          stopListening()
-        } else if (e.error === 'network') {
-          status.textContent = 'Network error — check connection'
-        } else if (e.error === 'no-speech') {
-          status.textContent = 'No speech detected — try again'
-        } else {
-          status.textContent = 'Error: ' + e.error
-        }
+        debug('SR ERROR: ' + e.error)
+        document.getElementById('listenStatus').textContent = 'Error: ' + e.error
       }
 
       recognition.onend = () => {
-        debugLog('onend - stopped (will NOT auto-restart)')
-        // Don't auto-restart — let user tap button again
-        if (recognition) {
-          recognition = null
-          interimEl = null
-          interimWords = []
-          document.getElementById('btnListen').classList.remove('listening')
-          document.getElementById('listenStatus').textContent = 'Stopped — tap 🗣️ again'
-          document.getElementById('listenStatus').classList.remove('active')
-        }
+        debug('SR ENDED')
+        recognition = null
+        document.getElementById('btnListen').classList.remove('listening')
+        document.getElementById('listenStatus').textContent = 'Stopped — tap 🗣️'
+        document.getElementById('listenStatus').classList.remove('active')
       }
 
       try {
         recognition.start()
-        debugLog('recognition.start() called')
-        document.getElementById('btnListen').classList.add('listening')
-        document.getElementById('listenStatus').textContent = 'Listening... speak now'
-        document.getElementById('listenStatus').classList.add('active')
+        debug('recognition.start() called')
       } catch(e) {
-        debugLog('start() threw: ' + e.message)
+        debug('start() FAILED: ' + e.message)
         document.getElementById('listenStatus').textContent = 'Failed: ' + e.message
       }
     }
 
     function stopListening() {
+      debug('stopListening')
       if (recognition) { recognition.stop(); recognition = null }
-      interimEl = null; interimWords = []
       document.getElementById('btnListen').classList.remove('listening')
-      document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start listening'
+      document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
       document.getElementById('listenStatus').classList.remove('active')
     }
 
-    socket.on('chat-message', ({ text }) => { addSub('subsThem', text, 'them') })
-
     // ============ SUBTITLES ============
-    let interimEl = null
-    let interimWords = []
+    let myInterim = null
+    let myInterimWords = []
 
-    function addSub(containerId, text, who, isInterim = false) {
-      debugLog('addSub: ' + containerId + ' interim=' + isInterim + ' "' + text + '"')
+    socket.on('chat-message', ({ text }) => {
+      debug('RECV: "' + text + '"')
+      showWords('subsThem', text, 'them')
+    })
+
+    function showWords(containerId, text, who, isInterim = false) {
       const container = document.getElementById(containerId)
-      if (!container) { debugLog('ERROR: container not found: ' + containerId); return }
+      if (!container) { debug('NO container: ' + containerId); return }
 
-      const newWords = text.split(/\s+/).filter(w => w.length > 0)
+      const words = text.split(/\s+/).filter(w => w.length > 0)
 
-      if (isInterim) {
-        if (!interimEl) {
-          interimEl = document.createElement('div')
-          interimEl.className = 'word-group interim'
-          container.appendChild(interimEl)
-          debugLog('Created interim container')
+      if (who === 'me' && isInterim) {
+        // For MY interim — reuse same element, only add new words
+        if (!myInterim) {
+          myInterim = document.createElement('div')
+          myInterim.className = 'word-group interim'
+          container.appendChild(myInterim)
         }
-
-        while (interimWords.length < newWords.length) {
-          const idx = interimWords.length
+        while (myInterimWords.length < words.length) {
           const span = document.createElement('span')
-          span.className = 'word-box ' + who
-          span.textContent = newWords[idx]
+          span.className = 'word-box me'
+          span.textContent = words[myInterimWords.length]
           span.style.animationDuration = '0.15s'
-          interimEl.appendChild(span)
-          interimWords.push(newWords[idx])
-          debugLog('Added interim word: ' + newWords[idx])
+          myInterim.appendChild(span)
+          myInterimWords.push(1)
         }
-        return interimEl
-
       } else {
-        if (interimEl) { interimEl.remove(); interimEl = null; interimWords = [] }
-
+        // For THEM or MY final — create new group
+        if (who === 'me' && myInterim) {
+          myInterim.remove()
+          myInterim = null
+          myInterimWords = []
+        }
         const group = document.createElement('div')
         group.className = 'word-group'
-        newWords.forEach((word, i) => {
+        words.forEach((word, i) => {
           const span = document.createElement('span')
           span.className = 'word-box ' + who
           span.textContent = word
@@ -488,21 +456,20 @@
           group.appendChild(span)
         })
         container.appendChild(group)
-        debugLog('Added final group with ' + newWords.length + ' words')
-
+        debug('showWords: added ' + words.length + ' to ' + containerId)
         setTimeout(() => {
           group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
           setTimeout(() => { if (group.parentNode) group.remove() }, 650)
         }, 3500)
-
-        return group
       }
     }
 
     // ============ WEBRTC ============
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+
     function createPeerConnection(userId) {
       otherUserId = userId
-      peerConnection = new RTCPeerConnection(config)
+      peerConnection = new RTCPeerConnection(rtcConfig)
       localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
       peerConnection.onicecandidate = (e) => {
         if (e.candidate && otherUserId) socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
@@ -510,17 +477,20 @@
       peerConnection.ontrack = (e) => {
         document.getElementById('remoteVideo').srcObject = e.streams[0]
         document.getElementById('waitingThem').style.display = 'none'
+        debug('GOT remote track')
       }
       return peerConnection
     }
 
     socket.on('user-joined', async (userId) => {
+      debug('user-joined: ' + userId)
       const pc = createPeerConnection(userId)
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
       socket.emit('offer', { to: userId, offer })
     })
     socket.on('offer', async ({ from, offer }) => {
+      debug('got offer from ' + from)
       otherUserId = from
       const pc = createPeerConnection(from)
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
@@ -529,76 +499,46 @@
       socket.emit('answer', { to: from, answer })
     })
     socket.on('answer', async ({ answer }) => {
+      debug('got answer')
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
     })
     socket.on('ice-candidate', async ({ candidate }) => {
       if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
     })
     socket.on('user-left', () => {
+      debug('user-left')
       document.getElementById('remoteVideo').srcObject = null
       document.getElementById('waitingThem').style.display = 'flex'
     })
 
     // ============ CONTROLS ============
-    document.getElementById('btnMute').addEventListener('click', toggleMute)
-    document.getElementById('btnCam').addEventListener('click', toggleCam)
-    document.getElementById('btnHang').addEventListener('click', hangUp)
-
-    function toggleMute() {
+    document.getElementById('btnMute').addEventListener('click', () => {
+      if (!localStream) return
       const a = localStream.getAudioTracks()[0]
       a.enabled = !a.enabled
       const btn = document.getElementById('btnMute')
       btn.classList.toggle('muted', !a.enabled)
       btn.textContent = a.enabled ? '🎤' : '🔇'
-    }
-    function toggleCam() {
+      debug('mute: ' + !a.enabled)
+    })
+
+    document.getElementById('btnCam').addEventListener('click', () => {
+      if (!localStream) return
       const v = localStream.getVideoTracks()[0]
       v.enabled = !v.enabled
       const btn = document.getElementById('btnCam')
       btn.classList.toggle('cam-off', !v.enabled)
       btn.textContent = v.enabled ? '📹' : '📷'
-    }
-    function hangUp() {
+      debug('cam: ' + v.enabled)
+    })
+
+    document.getElementById('btnHang').addEventListener('click', () => {
       stopListening()
       if (peerConnection) peerConnection.close()
       if (localStream) localStream.getTracks().forEach(t => t.stop())
       socket.disconnect()
       location.reload()
-    }
-
-    // ============ DEBUG PANEL ============
-    const debugLogs = []
-
-    function debugLog(msg) {
-      const time = new Date().toLocaleTimeString()
-      debugLogs.push(time + ': ' + msg)
-      if (debugLogs.length > 12) debugLogs.shift()
-      updateDebugUI()
-    }
-
-    function updateDebugUI() {
-      let el = document.getElementById('debugPanel')
-      if (!el) {
-        el = document.createElement('div')
-        el.id = 'debugPanel'
-        el.style.cssText = 'position:fixed;top:40px;left:6px;right:6px;z-index:99;background:rgba(0,0,0,0.9);color:#0f0;font-size:9px;padding:8px;border-radius:8px;font-family:monospace;line-height:1.5;max-height:180px;overflow-y:auto;pointer-events:none;'
-        document.body.appendChild(el)
-      }
-
-      const ua = navigator.userAgent
-      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost'
-      const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
-
-      el.innerHTML = '<b style="color:#ff0">--- DEBUG ---</b><br>' +
-        'Secure: ' + (isSecure ? '✓' : '✗ NO HTTPS') + ' | ' +
-        'SR: ' + (hasSR ? '✓' : '✗') + '<br>' +
-        '<b style="color:#ff0">Logs:</b><br>' +
-        debugLogs.slice(-8).join('<br>')
-    }
-
-    debugLog('Page loaded')
-    debugLog('Protocol: ' + location.protocol)
-    debugLog('SR available: ' + !!(window.SpeechRecognition || window.webkitSpeechRecognition))
+    })
   </script>
 </body>
 </html>
