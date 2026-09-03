@@ -410,8 +410,16 @@
       }
 
       recognition.onend = () => {
-        debugLog('onend fired')
-        if (recognition) try { recognition.start(); debugLog('restarted') } catch(e) { debugLog('restart failed: ' + e) }
+        debugLog('onend - stopped (will NOT auto-restart)')
+        // Don't auto-restart — let user tap button again
+        if (recognition) {
+          recognition = null
+          interimEl = null
+          interimWords = []
+          document.getElementById('btnListen').classList.remove('listening')
+          document.getElementById('listenStatus').textContent = 'Stopped — tap 🗣️ again'
+          document.getElementById('listenStatus').classList.remove('active')
+        }
       }
 
       try {
