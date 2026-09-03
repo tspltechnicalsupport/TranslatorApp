@@ -2,100 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Call</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Translator Call</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; height: 100vh; height: 100dvh; overflow: hidden; }
 
-    .container { text-align: center; max-width: 800px; width: 100%; padding: 20px; }
-
-    h1 { font-size: 24px; margin-bottom: 20px; }
-
-    .videos { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-    video { width: 320px; height: 240px; background: #0f0f23; border-radius: 12px; object-fit: cover; max-width: 45vw; }
-    #localVideo { border: 3px solid #4ade80; }
-    #remoteVideo { border: 3px solid #60a5fa; }
-
-    .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-
-    button { padding: 12px 24px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-create { background: #4ade80; color: #000; }
-    .btn-join { background: #60a5fa; color: #000; }
-    .btn-hangup { background: #ef4444; color: #fff; }
-    .btn-refresh { background: #333; color: #fff; font-size: 14px; padding: 8px 16px; }
-    .btn-perm { background: #f59e0b; color: #000; margin-bottom: 20px; }
-    button:hover { opacity: 0.85; transform: translateY(-1px); }
-
-    .room-info { font-size: 14px; color: #888; margin-bottom: 10px; }
-    .room-id { font-size: 28px; font-weight: 800; color: #4ade80; letter-spacing: 4px; margin-bottom: 20px; }
-
-    .status { font-size: 14px; color: #888; margin-top: 10px; }
-    .status.connected { color: #4ade80; }
-    .status.error { color: #ef4444; }
-
-    .hidden { display: none; }
-
-    .room-list { margin: 20px 0; }
-    .room-list h3 { font-size: 16px; color: #888; margin-bottom: 10px; }
-    .room-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #0f0f23; border: 1px solid #333; border-radius: 10px;
-      padding: 12px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+    /* ============ LOBBY ============ */
+    #lobby {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; height: 100dvh; padding: 20px;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
     }
-    .room-item:hover { border-color: #60a5fa; background: #1a1a3e; }
-    .room-item .room-code { font-size: 18px; font-weight: 700; color: #4ade80; letter-spacing: 2px; }
-    .room-item .room-users { font-size: 13px; color: #888; }
-    .room-item .room-join { background: #60a5fa; color: #000; padding: 6px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; }
-    .room-item .room-join:hover { opacity: 0.8; }
 
-    .empty-msg { color: #666; font-size: 14px; margin: 20px 0; }
+    .lobby-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #4ade80, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .lobby-sub { font-size: 14px; color: #666; margin-bottom: 30px; }
 
     .perm-box {
-      background: #0f0f23; border: 2px solid #f59e0b; border-radius: 12px;
-      padding: 20px; margin-bottom: 20px; text-align: center;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center; width: 100%; max-width: 360px;
     }
-    .perm-box p { font-size: 14px; color: #ccc; margin-bottom: 15px; }
-    .perm-status { font-size: 13px; margin-top: 10px; }
-    .perm-granted { color: #4ade80; }
-    .perm-denied { color: #ef4444; }
+    .perm-box p { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.5; }
+    .perm-preview { width: 120px; height: 90px; border-radius: 12px; object-fit: cover; background: #111; margin: 0 auto 16px; display: block; border: 2px solid #333; }
+    .perm-preview.active { border-color: #4ade80; }
+
+    .btn { padding: 14px 28px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; max-width: 360px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-perm { background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; }
+    .btn-create { background: linear-gradient(135deg, #4ade80, #22c55e); color: #000; margin-bottom: 12px; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .room-list { width: 100%; max-width: 360px; margin-top: 24px; }
+    .room-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .room-list-header h3 { font-size: 14px; color: #666; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; cursor: pointer; }
+    .room-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .room-item:active { background: rgba(255,255,255,0.1); }
+    .room-code { font-size: 20px; font-weight: 800; color: #4ade80; letter-spacing: 3px; }
+    .room-users { font-size: 12px; color: #666; margin-top: 2px; }
+    .room-join-btn { background: #60a5fa; color: #000; padding: 8px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .empty-msg { text-align: center; color: #444; font-size: 13px; padding: 20px; }
+
+    .perm-status { font-size: 12px; margin-top: 10px; }
+    .perm-ok { color: #4ade80; }
+    .perm-fail { color: #ef4444; }
+
+    /* ============ CALL VIEW ============ */
+    #call {
+      display: none; position: fixed; inset: 0; background: #000;
+    }
+    #call.active { display: flex; flex-direction: column; }
+
+    .video-container {
+      flex: 1; position: relative; display: flex; flex-direction: column;
+    }
+
+    /* Remote video fills entire screen */
+    .video-remote {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111;
+    }
+
+    /* Local video is a small pip in top-right */
+    .video-local {
+      position: absolute; top: 16px; right: 16px; width: 110px; height: 82px;
+      border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);
+      z-index: 10; background: #222;
+    }
+
+    /* Subtitle bar at bottom */
+    .subtitle-bar {
+      position: absolute; bottom: 90px; left: 16px; right: 16px; z-index: 10;
+      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+    }
+    .subtitle {
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
+      padding: 10px 16px; border-radius: 10px;
+      font-size: 15px; line-height: 1.4; color: #fff;
+      max-width: 85%; animation: fadeIn 0.3s ease;
+      border-left: 3px solid #4ade80;
+    }
+    .subtitle.speaker-me { border-left-color: #60a5fa; margin-left: auto; }
+    .subtitle .label { font-size: 10px; color: #888; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Bottom controls */
+    .call-controls {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
+      display: flex; justify-content: center; gap: 16px;
+      padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom));
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    }
+    .ctrl-btn {
+      width: 56px; height: 56px; border-radius: 50%; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; font-size: 22px;
+    }
+    .ctrl-btn:active { transform: scale(0.9); }
+    .ctrl-mute { background: rgba(255,255,255,0.15); color: #fff; }
+    .ctrl-mute.muted { background: #ef4444; color: #fff; }
+    .ctrl-cam { background: rgba(255,255,255,0.15); color: #fff; }
+    .ctrl-cam.off { background: #ef4444; color: #fff; }
+    .ctrl-hang { background: #ef4444; color: #fff; width: 64px; height: 64px; font-size: 26px; }
+
+    /* Room code badge */
+    .room-badge {
+      position: absolute; top: 16px; left: 16px; z-index: 10;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; color: #4ade80; letter-spacing: 2px;
+    }
+
+    /* Status */
+    .call-status {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 5; text-align: center;
+    }
+    .call-status .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+    .call-status p { color: #888; font-size: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Waiting overlay */
+    .waiting-overlay {
+      position: absolute; inset: 0; z-index: 8;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0f0f23;
+    }
+    .waiting-overlay .spinner { width: 48px; height: 48px; border: 3px solid #222; border-top-color: #4ade80; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    .waiting-overlay p { color: #666; font-size: 14px; }
+    .waiting-overlay .code { font-size: 36px; font-weight: 800; color: #4ade80; letter-spacing: 6px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Video Call</h1>
 
-    <div id="lobby">
-      <div class="perm-box">
-        <p>Camera and microphone access is required for video calls.</p>
-        <button class="btn-perm" onclick="requestPermissions()">Allow Camera & Mic</button>
-        <div class="perm-status" id="permStatus"></div>
-      </div>
+  <!-- LOBBY -->
+  <div id="lobby">
+    <div class="lobby-title">Translator Call</div>
+    <div class="lobby-sub">Speak any language. They hear theirs.</div>
 
-      <button class="btn-create" id="btnCreate" onclick="createRoom()" disabled>Create Room</button>
-
-      <div class="room-list">
-        <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px;">
-          <h3>Available Rooms</h3>
-          <button class="btn-refresh" onclick="loadRooms()">Refresh</button>
-        </div>
-        <div id="roomListContainer">
-          <div class="empty-msg">No rooms yet. Create one to start.</div>
-        </div>
-      </div>
+    <div class="perm-box">
+      <video class="perm-preview" id="permPreview" autoplay muted playsinline></video>
+      <p>Allow camera & mic to start</p>
+      <button class="btn btn-perm" id="btnPerm" onclick="requestPermissions()">Allow Camera & Mic</button>
+      <div class="perm-status" id="permStatus"></div>
     </div>
 
-    <div id="call" class="hidden">
-      <div class="room-info">Room Code</div>
-      <div class="room-id" id="displayRoomId"></div>
-      <div class="videos">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
+    <button class="btn btn-create" id="btnCreate" onclick="createRoom()" disabled>Create Room</button>
+
+    <div class="room-list">
+      <div class="room-list-header">
+        <h3>Active Rooms</h3>
+        <button class="btn-sm" onclick="loadRooms()">Refresh</button>
       </div>
-      <div class="controls">
-        <button class="btn-hangup" onclick="hangUp()">Hang Up</button>
+      <div id="roomList"><div class="empty-msg">No rooms yet</div></div>
+    </div>
+  </div>
+
+  <!-- CALL -->
+  <div id="call">
+    <div class="video-container">
+      <video class="video-remote" id="remoteVideo" autoplay playsinline></video>
+      <video class="video-local" id="localVideo" autoplay muted playsinline></video>
+
+      <div class="room-badge" id="roomBadge"></div>
+
+      <div class="waiting-overlay" id="waitingOverlay">
+        <div class="code" id="waitingCode"></div>
+        <div class="spinner"></div>
+        <p>Waiting for someone to join...</p>
       </div>
-      <div class="status" id="status">Connecting...</div>
+
+      <div class="subtitle-bar" id="subtitleBar"></div>
+
+      <div class="call-controls">
+        <button class="ctrl-btn ctrl-mute" id="btnMute" onclick="toggleMute()" title="Mute">🎤</button>
+        <button class="ctrl-btn ctrl-cam" id="btnCam" onclick="toggleCam()" title="Camera">📹</button>
+        <button class="ctrl-btn ctrl-hang" onclick="hangUp()" title="Hang Up">📞</button>
+      </div>
     </div>
   </div>
 
@@ -106,6 +193,7 @@
     let peerConnection = null
     let currentRoom = null
     let otherUserId = null
+    let recognition = null
 
     const config = {
       iceServers: [
@@ -114,110 +202,128 @@
       ]
     }
 
+    // ============ PERMISSIONS ============
     async function requestPermissions() {
       const statusEl = document.getElementById('permStatus')
+      const preview = document.getElementById('permPreview')
       try {
-        statusEl.textContent = 'Requesting access...'
+        statusEl.textContent = 'Requesting...'
         statusEl.className = 'perm-status'
-
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: true
-        })
-
-        document.getElementById('localVideo').srcObject = localStream
-        statusEl.textContent = 'Camera and mic enabled!'
-        statusEl.className = 'perm-status perm-granted'
+        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+        preview.srcObject = localStream
+        preview.classList.add('active')
+        statusEl.textContent = 'Camera & mic enabled!'
+        statusEl.className = 'perm-status perm-ok'
+        document.getElementById('btnPerm').textContent = 'Enabled'
+        document.getElementById('btnPerm').disabled = true
         document.getElementById('btnCreate').disabled = false
       } catch (err) {
-        console.error('Permission error:', err)
-        statusEl.textContent = 'Permission denied. Please allow camera/mic in browser settings.'
-        statusEl.className = 'perm-status perm-denied'
+        statusEl.textContent = 'Permission denied. Allow in browser settings.'
+        statusEl.className = 'perm-status perm-fail'
       }
     }
 
-    function loadRooms() {
-      socket.emit('get-rooms', (rooms) => {
-        renderRooms(rooms)
-      })
-    }
-
+    // ============ ROOMS ============
+    function loadRooms() { socket.emit('get-rooms', renderRooms) }
     function renderRooms(rooms) {
-      const container = document.getElementById('roomListContainer')
-      if (rooms.length === 0) {
-        container.innerHTML = '<div class="empty-msg">No rooms yet. Create one to start.</div>'
-        return
-      }
-      container.innerHTML = rooms.map(r => `
+      const el = document.getElementById('roomList')
+      if (!rooms.length) { el.innerHTML = '<div class="empty-msg">No rooms yet</div>'; return }
+      el.innerHTML = rooms.map(r => `
         <div class="room-item" onclick="joinRoom('${r.id}')">
-          <div>
-            <div class="room-code">${r.id}</div>
-            <div class="room-users">${r.users}/2 users</div>
-          </div>
-          <button class="room-join" onclick="event.stopPropagation(); joinRoom('${r.id}')">Join</button>
-        </div>
-      `).join('')
+          <div><div class="room-code">${r.id}</div><div class="room-users">${r.users}/2 users</div></div>
+          <button class="room-join-btn" onclick="event.stopPropagation();joinRoom('${r.id}')">Join</button>
+        </div>`).join('')
     }
-
-    socket.on('room-list', (rooms) => {
-      renderRooms(rooms)
-    })
-
+    socket.on('room-list', renderRooms)
     loadRooms()
 
     async function createRoom() {
-      if (!localStream) return alert('Allow camera and mic first!')
+      if (!localStream) return alert('Allow camera & mic first!')
       socket.emit('create-room', (roomId) => {
         currentRoom = roomId
         showCall(roomId)
-        setStatus('Waiting for someone to join...')
       })
     }
 
     async function joinRoom(roomId) {
-      if (!localStream) {
-        await requestPermissions()
-        if (!localStream) return alert('Allow camera and mic first!')
-      }
+      if (!localStream) { await requestPermissions(); if (!localStream) return }
       socket.emit('join-room', roomId, (res) => {
         if (res.error) return alert(res.error)
         currentRoom = roomId
         showCall(roomId)
-        setStatus('Connected! Setting up call...')
       })
     }
 
     function showCall(roomId) {
-      document.getElementById('lobby').classList.add('hidden')
-      document.getElementById('call').classList.remove('hidden')
-      document.getElementById('displayRoomId').textContent = roomId
+      document.getElementById('lobby').style.display = 'none'
+      document.getElementById('call').classList.add('active')
+      document.getElementById('roomBadge').textContent = roomId
+      document.getElementById('waitingCode').textContent = roomId
+      document.getElementById('localVideo').srcObject = localStream
+      startSpeechRecognition()
     }
 
-    function setStatus(text) {
-      const el = document.getElementById('status')
-      el.textContent = text
-      el.classList.toggle('connected', text.includes('Connected'))
-    }
+    // ============ SPEECH RECOGNITION ============
+    function startSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SpeechRecognition) { console.log('Speech recognition not supported'); return }
 
-    function createPeerConnection(userId) {
-      otherUserId = userId
-      peerConnection = new RTCPeerConnection(config)
+      recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = 'auto'
 
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream)
-      })
+      recognition.onresult = (e) => {
+        const last = e.results[e.results.length - 1]
+        const text = last[0].transcript.trim()
+        if (!text) return
 
-      peerConnection.onicecandidate = (e) => {
-        if (e.candidate && otherUserId) {
-          socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
+        addSubtitle(text, 'me')
+        socket.emit('chat-message', { to: otherUserId, text })
+
+        if (last.isFinal) {
+          translateAndSpeak(text)
         }
       }
 
+      recognition.onerror = (e) => { if (e.error !== 'no-speech') console.log('Speech error:', e.error) }
+      recognition.onend = () => { try { recognition.start() } catch(e) {} }
+      try { recognition.start() } catch(e) {}
+    }
+
+    function addSubtitle(text, who) {
+      const bar = document.getElementById('subtitleBar')
+      const div = document.createElement('div')
+      div.className = 'subtitle' + (who === 'me' ? ' speaker-me' : '')
+      div.innerHTML = `<div class="label">${who === 'me' ? 'You' : 'Them'}</div>${text}`
+      bar.appendChild(div)
+      if (bar.children.length > 4) bar.removeChild(bar.firstChild)
+      bar.scrollTop = bar.scrollHeight
+    }
+
+    // ============ TRANSLATION (placeholder — will connect to Google API) ============
+    async function translateAndSpeak(text) {
+      // For now, just show the text. Translation will be added next.
+      console.log('Would translate:', text)
+    }
+
+    socket.on('chat-message', ({ text }) => {
+      addSubtitle(text, 'them')
+    })
+
+    // ============ WEBRTC ============
+    function createPeerConnection(userId) {
+      otherUserId = userId
+      peerConnection = new RTCPeerConnection(config)
+      localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
+
+      peerConnection.onicecandidate = (e) => {
+        if (e.candidate && otherUserId) socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
+      }
       peerConnection.ontrack = (e) => {
         document.getElementById('remoteVideo').srcObject = e.streams[0]
-        setStatus('Connected!')
+        document.getElementById('waitingOverlay').style.display = 'none'
       }
-
       return peerConnection
     }
 
@@ -235,26 +341,38 @@
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
       socket.emit('answer', { to: from, answer })
-      setStatus('Connected!')
     })
 
-    socket.on('answer', async ({ from, answer }) => {
+    socket.on('answer', async ({ answer }) => {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
-      setStatus('Connected!')
     })
 
-    socket.on('ice-candidate', async ({ from, candidate }) => {
-      if (peerConnection) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-      }
+    socket.on('ice-candidate', async ({ candidate }) => {
+      if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
     })
 
     socket.on('user-left', () => {
       document.getElementById('remoteVideo').srcObject = null
-      setStatus('Other user disconnected')
+      document.getElementById('waitingOverlay').style.display = 'flex'
     })
 
+    // ============ CONTROLS ============
+    function toggleMute() {
+      const audio = localStream.getAudioTracks()[0]
+      audio.enabled = !audio.enabled
+      document.getElementById('btnMute').classList.toggle('muted', !audio.enabled)
+      document.getElementById('btnMute').textContent = audio.enabled ? '🎤' : '🔇'
+    }
+
+    function toggleCam() {
+      const video = localStream.getVideoTracks()[0]
+      video.enabled = !video.enabled
+      document.getElementById('btnCam').classList.toggle('off', !video.enabled)
+      document.getElementById('btnCam').textContent = video.enabled ? '📹' : '📷'
+    }
+
     function hangUp() {
+      if (recognition) recognition.stop()
       if (peerConnection) peerConnection.close()
       if (localStream) localStream.getTracks().forEach(t => t.stop())
       socket.disconnect()

@@ -66,6 +66,10 @@ io.on('connection', (socket) => {
     io.to(to).emit('ice-candidate', { from: socket.id, candidate })
   })
 
+  socket.on('chat-message', ({ to, text }) => {
+    io.to(to).emit('chat-message', { from: socket.id, text })
+  })
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id)
     for (const roomId in rooms) {
