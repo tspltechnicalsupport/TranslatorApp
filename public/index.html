@@ -181,8 +181,11 @@
     let currentRoom = null
     let otherUserId = null
     let recognition = null
+    let startingSR = false
     let myInterimGroup = null
     let myInterimCount = 0
+    let shouldKeepListening = false
+    let recognitionGeneration = 0
 
     // ============ DEBUG ============
     const dlog = []
@@ -296,30 +299,36 @@
     document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
 
     function toggleListening() {
-      D('toggleListening, recognition=' + !!recognition)
-      if (recognition) { stopListening(); return }
-      startListening()
+      D('toggleListening | recognition=' + !!recognition + ' starting=' + startingSR)
+      if (shouldKeepListening) { stopListening() } else { startListening() }
     }
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) { D('NO SR API'); alert('Not supported'); return }
-      if (recognition) { D('already running'); return }
+      if (!SR) { D('NO SPEECH RECOGNITION API'); alert('Speech recognition is not supported in this browser.'); return }
+      if (shouldKeepListening) { D('already listening'); return }
+      shouldKeepListening = true
+      recognitionGeneration++
+      myInterimGroup = null
+      myInterimCount = 0
+      startRecognitionInstance(recognitionGeneration)
+    }
 
-      // Log audio state before starting
-      if (localStream) {
-        const at = localStream.getAudioTracks()
-        D('pre-start audio: count=' + at.length + ' enabled=' + at.map(t => t.enabled).join(',') + ' readyState=' + at.map(t => t.readyState).join(','))
-      }
-
+    function startRecognitionInstance(generation) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SR || !shouldKeepListening) return
+      if (recognition || startingSR) { D('recognition already exists'); return }
+      startingSR = true
       const r = new SR()
       recognition = r
-      r.continuous = true
+      r.continuous = false
       r.interimResults = true
-      r.lang = ''
-      D('SR created, lang=auto, calling start()...')
+      r.lang = 'en-US'
+      r.maxAlternatives = 1
+      D('creating SR instance | lang=en-US')
 
       r.onstart = () => {
+        startingSR = false
         D('SR onstart ✓')
         document.getElementById('btnListen').classList.add('listening')
         document.getElementById('listenStatus').textContent = 'Listening... speak now'
@@ -327,16 +336,23 @@
       }
 
       r.onresult = (e) => {
-        D('onresult idx=' + e.resultIndex + ' total=' + e.results.length)
+        D('onresult | index=' + e.resultIndex + ' total=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          const res = e.results[i]
-          const text = res[0].transcript.trim()
-          const conf = Math.round(res[0].confidence * 100)
-          D((res.isFinal ? 'FINAL' : 'interim') + ' conf=' + conf + '% "' + text + '"')
+          const result = e.results[i]
+          if (!result || !result[0]) continue
+          const text = result[0].transcript.trim()
+          const confidence = Math.round((result[0].confidence || 0) * 100)
           if (!text) continue
-          if (res.isFinal) {
+          D((result.isFinal ? 'FINAL' : 'INTERIM') + ' | confidence=' + confidence + '% | "' + text + '"')
+
+          if (result.isFinal) {
             addMyWords(text, false)
-            socket.emit('chat-message', { to: otherUserId, text })
+            if (otherUserId) {
+              D('SEND text to peer=' + otherUserId + ' | "' + text + '"')
+              socket.emit('chat-message', { to: otherUserId, text: text })
+            } else { D('CANNOT SEND: otherUserId is null') }
+            myInterimGroup = null
+            myInterimCount = 0
           } else {
             addMyWords(text, true)
           }
@@ -344,32 +360,78 @@
       }
 
       r.onerror = (e) => {
+        startingSR = false
         D('SR ERROR: ' + e.error)
-        document.getElementById('listenStatus').textContent = 'Error: ' + e.error
+        if (e.error === 'aborted') { D('recognition aborted'); return }
+        if (e.error === 'no-speech') { D('no speech detected'); return }
+        if (e.error === 'audio-capture') { D('AUDIO CAPTURE ERROR'); document.getElementById('listenStatus').textContent = 'Microphone unavailable'; return }
+        if (e.error === 'not-allowed') { D('MICROPHONE PERMISSION DENIED'); shouldKeepListening = false; document.getElementById('listenStatus').textContent = 'Microphone permission denied'; document.getElementById('listenStatus').classList.remove('active'); return }
+        if (e.error === 'network') { D('SPEECH RECOGNITION NETWORK ERROR'); document.getElementById('listenStatus').textContent = 'Speech recognition network error'; return }
+        document.getElementById('listenStatus').textContent = 'Speech error: ' + e.error
       }
 
       r.onend = () => {
-        D('SR onend')
-        recognition = null
+        D('SR onend | keepListening=' + shouldKeepListening + ' generation=' + generation)
+        startingSR = false
+        if (recognition === r) { recognition = null }
         myInterimGroup = null
         myInterimCount = 0
-        document.getElementById('btnListen').classList.remove('listening')
-        document.getElementById('listenStatus').textContent = 'Stopped — tap 🗣️'
-        document.getElementById('listenStatus').classList.remove('active')
+
+        if (!shouldKeepListening) {
+          D('SR ended normally because user stopped')
+          document.getElementById('btnListen').classList.remove('listening')
+          document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
+          document.getElementById('listenStatus').classList.remove('active')
+          return
+        }
+
+        D('SR ended while listening → restarting...')
+        document.getElementById('listenStatus').textContent = 'Restarting listening...'
+        setTimeout(() => {
+          if (!shouldKeepListening) return
+          if (generation !== recognitionGeneration) { D('old recognition generation → not restarting'); return }
+          if (recognition || startingSR) { D('already starting → not restarting'); return }
+          D('AUTO RESTART SR')
+          startRecognitionInstance(generation)
+        }, 150)
       }
 
       try {
+        D('calling recognition.start()')
         r.start()
-        D('start() called')
-      } catch(e) {
-        D('start() threw: ' + e.message)
+      } catch (e) {
+        startingSR = false
+        if (recognition === r) { recognition = null }
+        D('start() threw: ' + e.name + ' | ' + e.message)
+        if (shouldKeepListening) {
+          setTimeout(() => {
+            if (shouldKeepListening && !recognition && !startingSR) {
+              D('retrying start() after exception')
+              startRecognitionInstance(generation)
+            }
+          }, 300)
+        }
       }
     }
 
     function stopListening() {
       D('stopListening')
-      if (recognition) { recognition.stop(); recognition = null }
-      myInterimGroup = null; myInterimCount = 0
+      shouldKeepListening = false
+      recognitionGeneration++
+      startingSR = false
+      const r = recognition
+      recognition = null
+      if (r) {
+        try {
+          r.onend = null
+          r.onerror = null
+          r.onresult = null
+          r.onstart = null
+          r.stop()
+        } catch (e) { D('stop error: ' + e.message) }
+      }
+      myInterimGroup = null
+      myInterimCount = 0
       document.getElementById('btnListen').classList.remove('listening')
       document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
       document.getElementById('listenStatus').classList.remove('active')
