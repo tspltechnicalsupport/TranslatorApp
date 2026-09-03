@@ -24,6 +24,8 @@
     .perm-box p { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.5; }
     .perm-preview { width: 120px; height: 90px; border-radius: 12px; object-fit: cover; background: #111; margin: 0 auto 16px; display: block; border: 2px solid #333; }
     .perm-preview.active { border-color: #4ade80; }
+    .perm-steps { text-align: left; font-size: 12px; color: #666; margin-top: 12px; line-height: 1.8; }
+    .perm-steps b { color: #f59e0b; }
 
     .btn { padding: 14px 28px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; max-width: 360px; }
     .btn:active { transform: scale(0.97); }
@@ -182,6 +184,13 @@
       <p>Allow camera & mic to start</p>
       <button class="btn btn-perm" id="btnPerm" onclick="requestPermissions()">Allow Camera & Mic</button>
       <div class="perm-status" id="permStatus"></div>
+      <div class="perm-steps" id="permSteps" style="display:none">
+        <b>Android Chrome:</b><br>
+        Tap the lock icon → Permissions → Allow<br><br>
+        <b>iPhone Safari:</b><br>
+        Settings → Safari → Camera → Allow<br><br>
+        Then <b>reload this page</b> and tap Allow again.
+      </div>
     </div>
 
     <button class="btn btn-create" id="btnCreate" onclick="createRoom()" disabled>Create Room</button>
@@ -248,21 +257,42 @@
     // ============ PERMISSIONS ============
     async function requestPermissions() {
       const statusEl = document.getElementById('permStatus')
+      const stepsEl = document.getElementById('permSteps')
       const preview = document.getElementById('permPreview')
+      const btn = document.getElementById('btnPerm')
+
       try {
         statusEl.textContent = 'Requesting...'
         statusEl.className = 'perm-status'
+        stepsEl.style.display = 'none'
+        btn.disabled = true
+
         localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
         preview.srcObject = localStream
         preview.classList.add('active')
         statusEl.textContent = 'Camera & mic enabled!'
         statusEl.className = 'perm-status perm-ok'
-        document.getElementById('btnPerm').textContent = 'Enabled'
-        document.getElementById('btnPerm').disabled = true
+        btn.textContent = 'Enabled'
         document.getElementById('btnCreate').disabled = false
+
       } catch (err) {
-        statusEl.textContent = 'Permission denied. Allow in browser settings.'
+        console.log('Permission error:', err.name)
+        statusEl.textContent = 'Permission denied. Tap below for help.'
         statusEl.className = 'perm-status perm-fail'
+        stepsEl.style.display = 'block'
+        btn.textContent = 'Try Again'
+        btn.disabled = false
+
+        // Try to get just audio or just video as fallback
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          statusEl.textContent = 'Mic enabled (no camera). You can still talk!'
+          statusEl.className = 'perm-status perm-ok'
+          document.getElementById('btnCreate').disabled = false
+          btn.textContent = 'Add Camera'
+        } catch (e2) {
+          // Nothing worked — show full instructions
+        }
       }
     }
 
