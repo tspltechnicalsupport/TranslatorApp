@@ -65,22 +65,29 @@
     /* Divider line between the two */
     .split .half:first-child { border-right: 1px solid rgba(255,255,255,0.1); }
 
-    /* Subtitle overlay on each half */
+    /* Subtitle overlay on each half — far left/right edges */
     .half-subtitles {
-      position: absolute; bottom: 70px; left: 12px; right: 12px; z-index: 10;
+      position: absolute; bottom: 70px; z-index: 10;
       display: flex; flex-direction: column; gap: 4px; pointer-events: none;
+      width: 45%; max-width: 280px;
     }
+    /* Their subtitles on far left */
+    .half:first-child .half-subtitles { left: 12px; }
+    /* Your subtitles on far right */
+    .half:last-child .half-subtitles { right: 12px; left: auto; }
+
     .sub {
       background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
       padding: 8px 12px; border-radius: 8px;
       font-size: 13px; line-height: 1.4; color: #fff;
-      max-width: 90%; animation: subIn 0.25s ease;
+      animation: subIn 0.25s ease, subOut 0.6s ease 4s forwards;
     }
     .sub.me { border-left: 3px solid #60a5fa; }
     .sub.them { border-left: 3px solid #4ade80; }
     .sub .who { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1px; }
 
     @keyframes subIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes subOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
 
     /* Label badges */
     .label-badge {
@@ -298,7 +305,8 @@
       div.className = 'sub ' + who
       div.innerHTML = `<div class="who">${who === 'me' ? 'You' : 'Them'}</div>${text}`
       container.appendChild(div)
-      if (container.children.length > 3) container.removeChild(container.firstChild)
+      // Remove after fade out (4.6s = 4s delay + 0.6s animation)
+      setTimeout(() => { if (div.parentNode) div.remove() }, 4600)
     }
 
     socket.on('chat-message', ({ text }) => {
