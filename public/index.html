@@ -68,25 +68,43 @@
     /* Subtitle overlay on each half — far left/right edges */
     .half-subtitles {
       position: absolute; bottom: 70px; z-index: 10;
-      display: flex; flex-wrap: wrap; gap: 4px; pointer-events: none;
+      display: flex; flex-wrap: wrap; gap: 5px; pointer-events: none;
       width: 45%; max-width: 300px; align-content: flex-end;
     }
     .half:first-child .half-subtitles { left: 12px; }
     .half:last-child .half-subtitles { right: 12px; left: auto; }
 
-    /* Individual word boxes */
-    .word-box {
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
-      padding: 4px 10px; border-radius: 6px;
-      font-size: 13px; font-weight: 600; color: #fff;
-      display: inline-block; animation: wordIn 0.2s ease, wordOut 0.5s ease 3.5s forwards;
-      white-space: nowrap;
+    /* Word group container */
+    .word-group {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px;
+      transition: opacity 0.4s ease;
     }
-    .word-box.me { border: 1px solid rgba(96,165,250,0.5); }
-    .word-box.them { border: 1px solid rgba(74,222,128,0.5); }
+    .word-group.interim { opacity: 0.55; }
 
-    @keyframes wordIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
-    @keyframes wordOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-6px); } }
+    /* Individual word boxes — smooth everything */
+    .word-box {
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+      padding: 5px 11px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: #fff;
+      display: inline-block; white-space: nowrap;
+      opacity: 0; transform: translateY(8px) scale(0.9);
+      animation: wordSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .word-box.me { border: 1px solid rgba(96,165,250,0.4); }
+    .word-box.them { border: 1px solid rgba(74,222,128,0.4); }
+    .word-box.fade-out {
+      animation: wordSlideOut 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes wordSlideIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes wordSlideOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-6px); }
+    }
 
     /* Label badges */
     .label-badge {
@@ -342,21 +360,22 @@
       const container = document.getElementById(containerId)
       const words = text.split(/\s+/).filter(w => w.length > 0)
       const group = document.createElement('div')
-      group.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;'
-      if (isInterim) group.style.opacity = '0.5'
+      group.className = 'word-group' + (isInterim ? ' interim' : '')
       words.forEach((word, i) => {
         const span = document.createElement('span')
         span.className = 'word-box ' + who
         span.textContent = word
-        if (!isInterim) {
-          span.style.animationDelay = `${i * 0.06}s, ${3.5 + i * 0.06}s`
-        } else {
-          span.style.animation = 'none'
-        }
+        span.style.animationDelay = `${i * 0.05}s`
+        if (isInterim) span.style.animationDuration = '0.15s'
         group.appendChild(span)
       })
       container.appendChild(group)
-      if (!isInterim) setTimeout(() => { if (group.parentNode) group.remove() }, 4500)
+      if (!isInterim) {
+        setTimeout(() => {
+          group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
+          setTimeout(() => { if (group.parentNode) group.remove() }, 550)
+        }, 3500)
+      }
       return group
     }
 
