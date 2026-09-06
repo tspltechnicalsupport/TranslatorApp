@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
     }
 
     const params = new URLSearchParams({
-      encoding: 'opus',
+      encoding: 'webm',
       sample_rate: '48000',
       channels: '1',
       language: language || 'en',
@@ -62,6 +62,7 @@ io.on('connection', (socket) => {
         if (msg.type === 'Results') {
           const alt = msg.channel?.alternatives?.[0]
           if (alt && alt.transcript) {
+            console.log(`[DG] ${msg.is_final ? 'FINAL' : 'interim'}: "${alt.transcript}"`)
             socket.emit('transcription', {
               text: alt.transcript,
               is_final: msg.is_final,
@@ -90,6 +91,8 @@ io.on('connection', (socket) => {
   socket.on('audio-data', (data) => {
     if (deepgramWs && deepgramWs.readyState === WebSocket.OPEN) {
       deepgramWs.send(Buffer.from(data))
+    } else {
+      console.log('audio-data dropped, deepgramWs state:', deepgramWs?.readyState)
     }
   })
 
