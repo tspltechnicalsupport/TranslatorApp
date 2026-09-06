@@ -337,22 +337,25 @@
 
       try {
         if (!audioContext) {
-          audioContext = new AudioContext({ sampleRate: 16000 })
+          audioContext = new AudioContext()
         }
         if (audioContext.state === 'suspended') {
           await audioContext.resume()
         }
 
+        const actualRate = audioContext.sampleRate
+        const targetRate = 16000
+        logSpeech('AudioContext sample rate: ' + actualRate)
+
         micStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            channelCount: 1,
-            sampleRate: 16000
+            channelCount: 1
           }
         })
 
-        const recognizer = new model.KaldiRecognizer(16000)
+        const recognizer = new model.KaldiRecognizer(targetRate)
         voskRecognizer = recognizer
         logSpeech('KaldiRecognizer created ✓')
 
@@ -375,13 +378,20 @@
         })
 
         micSource = audioContext.createMediaStreamSource(micStream)
-        scriptNode = audioContext.createScriptProcessor(4096, 1, 1)
+        const bufferSize = 4096
+        scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
+
+        const ratio = Math.round(actualRate / targetRate)
 
         scriptNode.onaudioprocess = (event) => {
           if (!voskRecognizer) return
           try {
-            const float32 = event.inputBuffer.getChannelData(0)
-            voskRecognizer.acceptWaveformFloat(float32, 16000)
+            const input = event.inputBuffer.getChannelData(0)
+            const downsampled = new Float32Array(Math.floor(input.length / ratio))
+            for (let i = 0; i < downsampled.length; i++) {
+              downsampled[i] = input[i * ratio]
+            }
+            voskRecognizer.acceptWaveformFloat(downsampled, targetRate)
           } catch (err) {
             logSpeech('acceptWaveform error: ' + err.message)
           }
@@ -390,7 +400,7 @@
         micSource.connect(scriptNode)
         scriptNode.connect(audioContext.destination)
 
-        logSpeech('Mic streaming to Vosk ✓')
+        logSpeech('Mic streaming to Vosk ✓ (resampling ' + actualRate + ' -> ' + targetRate + ')')
         document.getElementById('listenStatus').textContent = 'Listening (Vosk)...'
         document.getElementById('listenStatus').classList.add('active')
         btn.classList.add('listening')
