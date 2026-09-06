@@ -352,7 +352,7 @@
           }
         })
 
-        const recognizer = new model.KaldiRecognizer()
+        const recognizer = new model.KaldiRecognizer(16000)
         voskRecognizer = recognizer
         logSpeech('KaldiRecognizer created ✓')
 
