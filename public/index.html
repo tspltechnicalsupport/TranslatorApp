@@ -28,11 +28,12 @@
     .room-list { width: 100%; max-width: 340px; margin-top: 20px; }
     .room-list-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
     .room-list-header h3 { font-size: 13px; color: #666; }
-    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; }
+    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: none; cursor: pointer; }
     .room-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+    .room-item:active { background: rgba(255,255,255,0.1); }
     .room-code { font-size: 18px; font-weight: 800; color: #4ade80; letter-spacing: 3px; }
     .room-users { font-size: 11px; color: #666; }
-    .room-join-btn { background: #60a5fa; color: #000; padding: 7px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; }
+    .room-join-btn { background: #60a5fa; color: #000; padding: 7px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; cursor: pointer; }
     .empty-msg { text-align: center; color: #444; font-size: 12px; padding: 16px; }
     .perm-status { font-size: 12px; margin-top: 10px; min-height: 18px; }
     .perm-ok { color: #4ade80; }
@@ -61,6 +62,8 @@
     @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
     .word-box.me { border-color: rgba(96,165,250,0.7); }
     .word-box.them { border-color: rgba(74,222,128,0.7); }
+    .word-box.fade-out { animation: fadeOut 0.4s ease forwards; }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(-4px); } }
 
     .label-badge { position: absolute; z-index: 15; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; letter-spacing: 1px; }
 
@@ -74,7 +77,7 @@
       width: 50px; height: 50px; border-radius: 50%; border: none;
       display: flex; align-items: center; justify-content: center;
       font-size: 19px; background: rgba(255,255,255,0.12); color: #fff;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer;
     }
     .ctrl:active { transform: scale(0.9); }
     .ctrl.muted { background: #ef4444; }
@@ -139,7 +142,7 @@
     </div>
     <button class="btn btn-create" id="btnCreate" disabled>Create Room</button>
     <div class="room-list">
-      <div class="room-list-header"><h3>Active Rooms</h3><button class="btn-sm" onclick="loadRooms()">Refresh</button></div>
+      <div class="room-list-header"><h3>Active Rooms</h3><button class="btn-sm" id="btnRefresh">Refresh</button></div>
       <div id="roomList"><div class="empty-msg">No rooms yet</div></div>
     </div>
   </div>
@@ -181,9 +184,9 @@
     let recognition = null
     let myInterimGroup = null
     let myInterimCount = 0
-    
-    // Persistent state tracker to robustly handle mobile restarts
-    let isExplicitlyListening = false 
+    let isExplicitlyListening = false
+
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
@@ -242,6 +245,8 @@
     socket.on('room-list', renderRooms)
     loadRooms()
 
+    document.getElementById('btnRefresh').addEventListener('click', loadRooms)
+
     document.getElementById('btnCreate').addEventListener('click', () => {
       if (!localStream) return
       socket.emit('create-room', (roomId) => { currentRoom = roomId; showCall(roomId) })
@@ -265,35 +270,20 @@
     }
 
     // ============ SPEECH RECOGNITION ============
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-
-    document.getElementById('btnListen').addEventListener('click', (e) => {
-      e.preventDefault()
-      toggleListening()
-    })
-    document.getElementById('btnListen').addEventListener('touchend', (e) => { 
-      e.preventDefault() 
-      toggleListening() 
-    })
+    document.getElementById('btnListen').addEventListener('click', toggleListening)
+    document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
 
     function toggleListening() {
-      if (isExplicitlyListening) { 
-        stopListening() 
-      } else {
-        startListening()
-      }
+      if (isExplicitlyListening) { stopListening() } else { startListening() }
     }
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { alert('Speech recognition not supported'); return }
-      
-      isExplicitlyListening = true
 
+      isExplicitlyListening = true
       const r = new SR()
       recognition = r
-
-      // Mobile: continuous=false forces auto-restart behaviors on standard engines. PC: continuous=true
       r.continuous = !isMobile
       r.interimResults = true
       r.lang = 'en-US'
@@ -324,7 +314,6 @@
       }
 
       r.onerror = (e) => {
-        console.error('Speech recognition error: ', e.error)
         if (e.error === 'aborted' || e.error === 'no-speech') return
         if (e.error === 'not-allowed') {
           document.getElementById('listenStatus').textContent = 'Mic denied'
@@ -337,14 +326,8 @@
         myInterimGroup = null
         myInterimCount = 0
 
-        // Explicit Mobile Safeguard: Auto-restarts mic if user hasn't pressed stop button
         if (isExplicitlyListening) {
-          try {
-            r.start()
-            recognition = r
-          } catch (err) {
-            setTimeout(startListening, 200)
-          }
+          try { r.start(); recognition = r } catch (err) { setTimeout(startListening, 150) }
           return
         }
 
@@ -355,7 +338,7 @@
 
       try { r.start() } catch (e) {
         recognition = null
-        setTimeout(startListening, 200)
+        setTimeout(startListening, 150)
       }
     }
 
@@ -411,18 +394,90 @@
         }
         const group = document.createElement('div')
         group.className = 'word-group'
-        container.appendChild(group)
-
         words.forEach(w => {
           const span = document.createElement('span')
           span.className = 'word-box ' + who
           span.textContent = w
           group.appendChild(span)
         })
-        container.scrollTop = container.scrollHeight
+        container.appendChild(group)
+        setTimeout(() => {
+          group.querySelectorAll('.word-box').forEach(w => w.classList.add('fade-out'))
+          setTimeout(() => { if (group.parentNode) group.remove() }, 450)
+        }, 3500)
       }
     }
-  </script>
 
+    // ============ WEBRTC ============
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+
+    function createPeerConnection(userId) {
+      otherUserId = userId
+      peerConnection = new RTCPeerConnection(rtcConfig)
+      localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
+      peerConnection.onicecandidate = (e) => {
+        if (e.candidate && otherUserId) socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
+      }
+      peerConnection.ontrack = (e) => {
+        document.getElementById('remoteVideo').srcObject = e.streams[0]
+        document.getElementById('waitingThem').style.display = 'none'
+      }
+      return peerConnection
+    }
+
+    socket.on('user-joined', async (userId) => {
+      const pc = createPeerConnection(userId)
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      socket.emit('offer', { to: userId, offer })
+    })
+
+    socket.on('offer', async ({ from, offer }) => {
+      otherUserId = from
+      const pc = createPeerConnection(from)
+      await pc.setRemoteDescription(new RTCSessionDescription(offer))
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      socket.emit('answer', { to: from, answer })
+    })
+
+    socket.on('answer', async ({ answer }) => {
+      if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+    })
+
+    socket.on('ice-candidate', async ({ candidate }) => {
+      if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+    })
+
+    socket.on('user-left', () => {
+      document.getElementById('remoteVideo').srcObject = null
+      document.getElementById('waitingThem').style.display = 'flex'
+    })
+
+    // ============ CONTROLS ============
+    document.getElementById('btnMute').addEventListener('click', () => {
+      if (!localStream) return
+      const a = localStream.getAudioTracks()[0]
+      a.enabled = !a.enabled
+      document.getElementById('btnMute').classList.toggle('muted', !a.enabled)
+      document.getElementById('btnMute').textContent = a.enabled ? '🎤' : '🔇'
+    })
+
+    document.getElementById('btnCam').addEventListener('click', () => {
+      if (!localStream) return
+      const v = localStream.getVideoTracks()[0]
+      v.enabled = !v.enabled
+      document.getElementById('btnCam').classList.toggle('cam-off', !v.enabled)
+      document.getElementById('btnCam').textContent = v.enabled ? '📹' : '📷'
+    })
+
+    document.getElementById('btnHang').addEventListener('click', () => {
+      stopListening()
+      if (peerConnection) peerConnection.close()
+      if (localStream) localStream.getTracks().forEach(t => t.stop())
+      socket.disconnect()
+      location.reload()
+    })
+  </script>
 </body>
 </html>
