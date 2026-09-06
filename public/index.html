@@ -181,6 +181,9 @@
     let recognition = null
     let myInterimGroup = null
     let myInterimCount = 0
+    
+    // Persistent state tracker to robustly handle mobile restarts
+    let isExplicitlyListening = false 
 
     // ============ PERMISSIONS ============
     async function requestPermissions() {
@@ -264,23 +267,33 @@
     // ============ SPEECH RECOGNITION ============
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
 
-    document.getElementById('btnListen').addEventListener('click', toggleListening)
-    document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
+    document.getElementById('btnListen').addEventListener('click', (e) => {
+      e.preventDefault()
+      toggleListening()
+    })
+    document.getElementById('btnListen').addEventListener('touchend', (e) => { 
+      e.preventDefault() 
+      toggleListening() 
+    })
 
     function toggleListening() {
-      if (recognition) { stopListening(); return }
-      startListening()
+      if (isExplicitlyListening) { 
+        stopListening() 
+      } else {
+        startListening()
+      }
     }
 
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { alert('Speech recognition not supported'); return }
-      if (recognition) return
+      
+      isExplicitlyListening = true
 
       const r = new SR()
       recognition = r
 
-      // Mobile: continuous=false (auto-restart). PC: continuous=true (fast).
+      // Mobile: continuous=false forces auto-restart behaviors on standard engines. PC: continuous=true
       r.continuous = !isMobile
       r.interimResults = true
       r.lang = 'en-US'
@@ -311,6 +324,7 @@
       }
 
       r.onerror = (e) => {
+        console.error('Speech recognition error: ', e.error)
         if (e.error === 'aborted' || e.error === 'no-speech') return
         if (e.error === 'not-allowed') {
           document.getElementById('listenStatus').textContent = 'Mic denied'
@@ -323,9 +337,14 @@
         myInterimGroup = null
         myInterimCount = 0
 
-        // Mobile: auto-restart instantly
-        if (isMobile && document.getElementById('btnListen').classList.contains('listening')) {
-          startListening()
+        // Explicit Mobile Safeguard: Auto-restarts mic if user hasn't pressed stop button
+        if (isExplicitlyListening) {
+          try {
+            r.start()
+            recognition = r
+          } catch (err) {
+            setTimeout(startListening, 200)
+          }
           return
         }
 
@@ -336,11 +355,12 @@
 
       try { r.start() } catch (e) {
         recognition = null
-        setTimeout(startListening, 100)
+        setTimeout(startListening, 200)
       }
     }
 
     function stopListening() {
+      isExplicitlyListening = false
       if (recognition) {
         recognition.onend = null
         recognition.onerror = null
@@ -391,86 +411,18 @@
         }
         const group = document.createElement('div')
         group.className = 'word-group'
-        words.forEach(word => {
+        container.appendChild(group)
+
+        words.forEach(w => {
           const span = document.createElement('span')
           span.className = 'word-box ' + who
-          span.textContent = word
+          span.textContent = w
           group.appendChild(span)
         })
-        container.appendChild(group)
-        setTimeout(() => {
-          group.querySelectorAll('.word-box').forEach(w => w.style.opacity = '0')
-          setTimeout(() => { if (group.parentNode) group.remove() }, 400)
-        }, 3500)
+        container.scrollTop = container.scrollHeight
       }
     }
-
-    // ============ WEBRTC ============
-    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-
-    function createPeerConnection(userId) {
-      otherUserId = userId
-      peerConnection = new RTCPeerConnection(rtcConfig)
-      localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream))
-      peerConnection.onicecandidate = (e) => {
-        if (e.candidate && otherUserId) socket.emit('ice-candidate', { to: otherUserId, candidate: e.candidate })
-      }
-      peerConnection.ontrack = (e) => {
-        document.getElementById('remoteVideo').srcObject = e.streams[0]
-        document.getElementById('waitingThem').style.display = 'none'
-      }
-      return peerConnection
-    }
-
-    socket.on('user-joined', async (userId) => {
-      const pc = createPeerConnection(userId)
-      const offer = await pc.createOffer()
-      await pc.setLocalDescription(offer)
-      socket.emit('offer', { to: userId, offer })
-    })
-    socket.on('offer', async ({ from, offer }) => {
-      otherUserId = from
-      const pc = createPeerConnection(from)
-      await pc.setRemoteDescription(new RTCSessionDescription(offer))
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
-      socket.emit('answer', { to: from, answer })
-    })
-    socket.on('answer', async ({ answer }) => {
-      if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
-    })
-    socket.on('ice-candidate', async ({ candidate }) => {
-      if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-    })
-    socket.on('user-left', () => {
-      document.getElementById('remoteVideo').srcObject = null
-      document.getElementById('waitingThem').style.display = 'flex'
-    })
-
-    // ============ CONTROLS ============
-    document.getElementById('btnMute').addEventListener('click', () => {
-      if (!localStream) return
-      const a = localStream.getAudioTracks()[0]
-      a.enabled = !a.enabled
-      document.getElementById('btnMute').classList.toggle('muted', !a.enabled)
-      document.getElementById('btnMute').textContent = a.enabled ? '🎤' : '🔇'
-    })
-
-    document.getElementById('btnCam').addEventListener('click', () => {
-      if (!localStream) return
-      const v = localStream.getVideoTracks()[0]
-      v.enabled = !v.enabled
-      document.getElementById('btnCam').classList.toggle('cam-off', !v.enabled)
-      document.getElementById('btnCam').textContent = v.enabled ? '📹' : '📷'
-    })
-
-    document.getElementById('btnHang').addEventListener('click', () => {
-      stopListening()
-      if (peerConnection) peerConnection.close()
-      if (localStream) localStream.getTracks().forEach(t => t.stop())
-      socket.disconnect()
-      location.reload()
-    })
   </script>
+
 </body>
 </html>
