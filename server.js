@@ -38,10 +38,9 @@ io.on('connection', (socket) => {
       encoding: 'webm',
       sample_rate: '48000',
       channels: '1',
+      model: 'nova-2',
       language: language || 'en',
       interim_results: 'true',
-      endpointing: '300',
-      vad_events: 'true',
       smart_format: 'true'
     })
 
@@ -77,8 +76,15 @@ io.on('connection', (socket) => {
     })
 
     deepgramWs.on('error', (err) => {
-      console.log('Deepgram error:', err.message)
-      socket.emit('transcription-error', { error: err.message })
+      console.log('Deepgram error:', err.message, err.statusCode)
+      socket.emit('transcription-error', { error: err.message + ' (' + err.statusCode + ')' })
+    })
+
+    deepgramWs.on('unexpected-response', (req, res) => {
+      console.log('Deepgram unexpected-response:', res.statusCode, res.statusMessage)
+      let body = ''
+      res.on('data', chunk => body += chunk)
+      res.on('end', () => console.log('Deepgram response body:', body))
     })
 
     deepgramWs.on('close', (code, reason) => {
