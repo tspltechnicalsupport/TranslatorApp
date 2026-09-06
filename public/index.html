@@ -280,6 +280,7 @@
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { alert('Speech recognition not supported'); return }
+      if (recognition) return
 
       isExplicitlyListening = true
       const r = new SR()
@@ -326,8 +327,9 @@
         myInterimGroup = null
         myInterimCount = 0
 
+        // Auto-restart immediately if user hasn't stopped
         if (isExplicitlyListening) {
-          try { r.start(); recognition = r } catch (err) { setTimeout(startListening, 150) }
+          startListening()
           return
         }
 
@@ -338,7 +340,7 @@
 
       try { r.start() } catch (e) {
         recognition = null
-        setTimeout(startListening, 150)
+        setTimeout(startListening, 50)
       }
     }
 
