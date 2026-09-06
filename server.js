@@ -34,20 +34,11 @@ io.on('connection', (socket) => {
       return
     }
 
-    const params = new URLSearchParams({
-      encoding: 'webm',
-      sample_rate: '48000',
-      channels: '1',
-      model: 'nova-2',
-      language: language || 'en',
-      interim_results: 'true',
-      smart_format: 'true'
-    })
+    const dgUrl = 'wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&language=' + (language || 'en') + '&interim_results=true&model=nova-2&smart_format=true'
 
-    const dgUrl = `wss://api.deepgram.com/v1/listen?${params}`
-
+    console.log('Connecting to Deepgram...')
     deepgramWs = new WebSocket(dgUrl, {
-      headers: { Authorization: `Token ${DEEPGRAM_API_KEY}` }
+      headers: { 'Authorization': 'Token ' + DEEPGRAM_API_KEY }
     })
 
     deepgramWs.on('open', () => {

@@ -269,10 +269,11 @@
     }
 
     // ============ SPEECH RECOGNITION (Deepgram Streaming) ============
-    let recognition = null
-    let mediaRecorder = null
     let speechStartTime = 0
     let deepgramReady = false
+    let pcmAudioContext = null
+    let pcmSource = null
+    let pcmScriptNode = null
 
     function logSpeech(msg) {
       const t = Date.now()
@@ -286,6 +287,15 @@
 
     function toggleListening() {
       if (isExplicitlyListening) { stopListening() } else { startListening() }
+    }
+
+    function floatTo16BitPCM(float32Array) {
+      const int16 = new Int16Array(float32Array.length)
+      for (let i = 0; i < float32Array.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32Array[i]))
+        int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+      }
+      return int16.buffer
     }
 
     function startListening() {
@@ -305,72 +315,67 @@
     socket.on('transcription-ready', () => {
       logSpeech('Deepgram connected ✓')
       deepgramReady = true
-      startMediaRecorder()
+      startPCMStream()
     })
 
     socket.on('transcription-error', ({ error }) => {
       logSpeech('Deepgram error: ' + error)
-      document.getElementById('listenStatus').textContent = 'Transcription unavailable'
+      document.getElementById('listenStatus').textContent = 'Error: ' + error
       stopListening()
     })
 
-    function startMediaRecorder() {
+    async function startPCMStream() {
       if (!localStream) {
         logSpeech('No localStream')
         stopListening()
         return
       }
 
-      const audioTracks = localStream.getAudioTracks()
-      if (!audioTracks.length) {
-        logSpeech('No audio tracks')
-        stopListening()
-        return
-      }
+      try {
+        pcmAudioContext = new AudioContext({ sampleRate: 16000 })
+        if (pcmAudioContext.state === 'suspended') {
+          await pcmAudioContext.resume()
+        }
 
-      const audioStream = new MediaStream(audioTracks)
+        logSpeech('AudioContext rate: ' + pcmAudioContext.sampleRate)
 
-      let mimeType = 'audio/webm;codecs=opus'
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm'
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4'
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = ''
+        pcmSource = pcmAudioContext.createMediaStreamSource(localStream)
+        pcmScriptNode = pcmAudioContext.createScriptProcessor(4096, 1, 1)
+
+        pcmScriptNode.onaudioprocess = (e) => {
+          if (!deepgramReady) return
+          const input = e.inputBuffer.getChannelData(0)
+
+          let resampled
+          if (pcmAudioContext.sampleRate === 16000) {
+            resampled = input
+          } else {
+            const ratio = pcmAudioContext.sampleRate / 16000
+            const newLen = Math.floor(input.length / ratio)
+            resampled = new Float32Array(newLen)
+            for (let i = 0; i < newLen; i++) {
+              resampled[i] = input[Math.floor(i * ratio)]
+            }
           }
+
+          const pcmBuffer = floatTo16BitPCM(resampled)
+          socket.emit('audio-data', pcmBuffer)
         }
+
+        pcmSource.connect(pcmScriptNode)
+        pcmScriptNode.connect(pcmAudioContext.destination)
+
+        document.getElementById('listenStatus').textContent = 'Listening...'
+        document.getElementById('listenStatus').classList.add('active')
+        document.getElementById('btnListen').classList.add('listening')
+        logSpeech('PCM streaming started (16kHz) ✓')
+      } catch (err) {
+        logSpeech('PCM stream error: ' + err.message)
+        stopListening()
       }
-
-      const options = mimeType ? { mimeType } : {}
-      mediaRecorder = new MediaRecorder(audioStream, options)
-
-      logSpeech('MediaRecorder started: ' + mediaRecorder.mimeType)
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0 && deepgramReady) {
-          e.data.arrayBuffer().then(buf => {
-            socket.emit('audio-data', buf)
-          })
-        }
-      }
-
-      mediaRecorder.onerror = (e) => {
-        logSpeech('MediaRecorder error: ' + e.error)
-      }
-
-      mediaRecorder.onstop = () => {
-        logSpeech('MediaRecorder stopped')
-      }
-
-      mediaRecorder.start(250)
-
-      document.getElementById('listenStatus').textContent = 'Listening...'
-      document.getElementById('listenStatus').classList.add('active')
-      document.getElementById('btnListen').classList.add('listening')
-      logSpeech('Streaming audio to server ✓')
     }
 
-    socket.on('transcription', ({ text, is_final, confidence }) => {
+    socket.on('transcription', ({ text, is_final }) => {
       if (!text || !text.trim()) return
 
       if (is_final) {
@@ -394,10 +399,19 @@
       isExplicitlyListening = false
       deepgramReady = false
 
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        try { mediaRecorder.stop() } catch (e) {}
+      if (pcmScriptNode) {
+        pcmScriptNode.onaudioprocess = null
+        try { pcmScriptNode.disconnect() } catch (e) {}
+        pcmScriptNode = null
       }
-      mediaRecorder = null
+      if (pcmSource) {
+        try { pcmSource.disconnect() } catch (e) {}
+        pcmSource = null
+      }
+      if (pcmAudioContext) {
+        try { pcmAudioContext.close() } catch (e) {}
+        pcmAudioContext = null
+      }
 
       socket.emit('stop-transcription')
 
