@@ -309,7 +309,7 @@
       document.getElementById('listenStatus').textContent = 'Connecting...'
       document.getElementById('listenStatus').classList.add('active')
 
-      socket.emit('start-transcription', { language: 'en' })
+      socket.emit('start-transcription', { language: 'multi' })
     }
 
     socket.on('transcription-ready', () => {

@@ -34,7 +34,7 @@ io.on('connection', (socket) => {
       return
     }
 
-    const dgUrl = 'wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&language=' + (language || 'en') + '&interim_results=true&model=nova-2&smart_format=true'
+    const dgUrl = 'wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&language=' + (language || 'multi') + '&interim_results=true&model=nova-3&smart_format=true'
 
     console.log('Connecting to Deepgram...')
     deepgramWs = new WebSocket(dgUrl, {
