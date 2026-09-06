@@ -271,6 +271,14 @@
 
     // ============ SPEECH RECOGNITION ============
     let keepAliveTimer = null
+    let speechStartTime = 0
+
+    function logSpeech(msg) {
+      const t = Date.now()
+      const elapsed = speechStartTime ? ((t - speechStartTime) / 1000).toFixed(1) : '0.0'
+      const tag = isMobile ? '📱' : '💻'
+      console.log(tag + ' [' + elapsed + 's] ' + msg)
+    }
 
     document.getElementById('btnListen').addEventListener('click', toggleListening)
     document.getElementById('btnListen').addEventListener('touchend', e => { e.preventDefault(); toggleListening() })
@@ -282,9 +290,11 @@
     function startListening() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) { alert('Speech recognition not supported'); return }
-      if (recognition) return
+      if (recognition) { logSpeech('SKIP: already running'); return }
 
       isExplicitlyListening = true
+      speechStartTime = Date.now()
+      logSpeech('startListening called')
       launchRecognition()
     }
 
@@ -292,6 +302,7 @@
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR || !isExplicitlyListening) return
 
+      logSpeech('launchRecognition: creating SR...')
       const r = new SR()
       recognition = r
       r.continuous = true
@@ -300,17 +311,22 @@
       r.maxAlternatives = 1
 
       r.onstart = () => {
+        logSpeech('SR onstart ✓ — ready to hear')
         document.getElementById('btnListen').classList.add('listening')
         document.getElementById('listenStatus').textContent = 'Listening...'
         document.getElementById('listenStatus').classList.add('active')
       }
 
       r.onresult = (e) => {
+        logSpeech('onresult: index=' + e.resultIndex + ' total=' + e.results.length)
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const res = e.results[i]
           if (!res || !res[0]) continue
           const text = res[0].transcript.trim()
+          const conf = Math.round((res[0].confidence || 0) * 100)
           if (!text) continue
+
+          logSpeech((res.isFinal ? 'FINAL' : 'interim') + ' conf=' + conf + '% "' + text + '"')
 
           if (res.isFinal) {
             addMyWords(text, false)
@@ -324,6 +340,7 @@
       }
 
       r.onerror = (e) => {
+        logSpeech('SR ERROR: ' + e.error)
         if (e.error === 'aborted' || e.error === 'no-speech') return
         if (e.error === 'not-allowed') {
           document.getElementById('listenStatus').textContent = 'Mic denied'
@@ -332,6 +349,7 @@
       }
 
       r.onend = () => {
+        logSpeech('SR onend — restarting...')
         recognition = null
         myInterimGroup = null
         myInterimCount = 0
@@ -346,13 +364,18 @@
         document.getElementById('listenStatus').classList.remove('active')
       }
 
-      try { r.start() } catch (e) {
+      try {
+        logSpeech('calling r.start()...')
+        r.start()
+      } catch (e) {
+        logSpeech('start() threw: ' + e.message)
         recognition = null
         setTimeout(launchRecognition, 50)
       }
     }
 
     function stopListening() {
+      logSpeech('stopListening')
       isExplicitlyListening = false
       if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null }
       if (recognition) {
