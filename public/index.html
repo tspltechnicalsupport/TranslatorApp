@@ -174,6 +174,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io()
@@ -181,10 +182,16 @@
     let peerConnection = null
     let currentRoom = null
     let otherUserId = null
-    let recognition = null
+    let voskModel = null
+    let voskRecognizer = null
+    let audioContext = null
+    let micStream = null
+    let micSource = null
+    let scriptNode = null
     let myInterimGroup = null
     let myInterimCount = 0
     let isExplicitlyListening = false
+    let voskLoading = false
 
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
 
@@ -269,8 +276,7 @@
       document.getElementById('localVideo').srcObject = localStream
     }
 
-    // ============ SPEECH RECOGNITION ============
-    let keepAliveTimer = null
+    // ============ SPEECH RECOGNITION (VOSK) ============
     let speechStartTime = 0
 
     function logSpeech(msg) {
@@ -287,105 +293,135 @@
       if (isExplicitlyListening) { stopListening() } else { startListening() }
     }
 
-    function startListening() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR) { alert('Speech recognition not supported'); return }
-      if (recognition) { logSpeech('SKIP: already running'); return }
+    async function initVosk() {
+      if (voskModel) return voskModel
+      if (voskLoading) return null
+      voskLoading = true
+
+      document.getElementById('listenStatus').textContent = 'Loading speech model...'
+      document.getElementById('listenStatus').classList.add('active')
+
+      try {
+        logSpeech('Creating Vosk model...')
+        const model = await Vosk.createModel('/models/vosk-model-small-en-us-0.15.tar.gz')
+        voskModel = model
+        logSpeech('Vosk model loaded ✓')
+        voskLoading = false
+        return model
+      } catch (err) {
+        logSpeech('Vosk model load FAILED: ' + err.message)
+        document.getElementById('listenStatus').textContent = 'Model load failed'
+        voskLoading = false
+        return null
+      }
+    }
+
+    async function startListening() {
+      if (isExplicitlyListening) { logSpeech('SKIP: already listening'); return }
+      if (voskLoading) { logSpeech('SKIP: model loading'); return }
 
       isExplicitlyListening = true
       speechStartTime = Date.now()
       logSpeech('startListening called')
-      launchRecognition()
-    }
 
-    function launchRecognition() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (!SR || !isExplicitlyListening) return
+      const btn = document.getElementById('btnListen')
+      btn.classList.add('listening')
+      document.getElementById('listenStatus').textContent = 'Initializing...'
+      document.getElementById('listenStatus').classList.add('active')
 
-      logSpeech('launchRecognition: creating SR...')
-      const r = new SR()
-      recognition = r
-      r.continuous = true
-      r.interimResults = true
-      r.lang = 'en-US'
-      r.maxAlternatives = 1
-
-      r.onstart = () => {
-        logSpeech('SR onstart ✓ — ready to hear')
-        document.getElementById('btnListen').classList.add('listening')
-        document.getElementById('listenStatus').textContent = 'Listening...'
-        document.getElementById('listenStatus').classList.add('active')
-      }
-
-      r.onresult = (e) => {
-        logSpeech('onresult: index=' + e.resultIndex + ' total=' + e.results.length)
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const res = e.results[i]
-          if (!res || !res[0]) continue
-          const text = res[0].transcript.trim()
-          const conf = Math.round((res[0].confidence || 0) * 100)
-          if (!text) continue
-
-          logSpeech((res.isFinal ? 'FINAL' : 'interim') + ' conf=' + conf + '% "' + text + '"')
-
-          if (res.isFinal) {
-            addMyWords(text, false)
-            if (otherUserId) socket.emit('chat-message', { to: otherUserId, text })
-            myInterimGroup = null
-            myInterimCount = 0
-          } else {
-            addMyWords(text, true)
-          }
-        }
-      }
-
-      r.onerror = (e) => {
-        logSpeech('SR ERROR: ' + e.error)
-        if (e.error === 'aborted' || e.error === 'no-speech') return
-        if (e.error === 'not-allowed') {
-          document.getElementById('listenStatus').textContent = 'Mic denied'
-          stopListening()
-        }
-      }
-
-      r.onend = () => {
-        logSpeech('SR onend — restarting...')
-        recognition = null
-        myInterimGroup = null
-        myInterimCount = 0
-
-        if (isExplicitlyListening) {
-          setTimeout(launchRecognition, 0)
-          return
-        }
-
-        document.getElementById('btnListen').classList.remove('listening')
-        document.getElementById('listenStatus').textContent = 'Tap 🗣️ to start'
-        document.getElementById('listenStatus').classList.remove('active')
+      const model = await initVosk()
+      if (!model || !isExplicitlyListening) {
+        stopListening()
+        return
       }
 
       try {
-        logSpeech('calling r.start()...')
-        r.start()
-      } catch (e) {
-        logSpeech('start() threw: ' + e.message)
-        recognition = null
-        setTimeout(launchRecognition, 50)
+        if (!audioContext) {
+          audioContext = new AudioContext({ sampleRate: 16000 })
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume()
+        }
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            channelCount: 1,
+            sampleRate: 16000
+          }
+        })
+
+        const recognizer = new model.KaldiRecognizer()
+        voskRecognizer = recognizer
+        logSpeech('KaldiRecognizer created ✓')
+
+        recognizer.on('result', (message) => {
+          const text = message.result.text
+          if (!text || !text.trim()) return
+          logSpeech('FINAL: "' + text + '"')
+          addMyWords(text, false)
+          if (otherUserId) socket.emit('chat-message', { to: otherUserId, text })
+        })
+
+        recognizer.on('partialresult', (message) => {
+          const text = message.result.partial
+          if (!text || !text.trim()) return
+          addMyWords(text, true)
+        })
+
+        recognizer.on('error', (e) => {
+          logSpeech('Vosk ERROR: ' + JSON.stringify(e))
+        })
+
+        micSource = audioContext.createMediaStreamSource(micStream)
+        scriptNode = audioContext.createScriptProcessor(4096, 1, 1)
+
+        scriptNode.onaudioprocess = (event) => {
+          if (!voskRecognizer) return
+          try {
+            voskRecognizer.acceptWaveform(event.inputBuffer)
+          } catch (err) {
+            logSpeech('acceptWaveform error: ' + err.message)
+          }
+        }
+
+        micSource.connect(scriptNode)
+        scriptNode.connect(audioContext.destination)
+
+        logSpeech('Mic streaming to Vosk ✓')
+        document.getElementById('listenStatus').textContent = 'Listening (Vosk)...'
+        document.getElementById('listenStatus').classList.add('active')
+        btn.classList.add('listening')
+      } catch (err) {
+        logSpeech('startListening FAILED: ' + err.message)
+        document.getElementById('listenStatus').textContent = 'Mic error: ' + err.message
+        stopListening()
       }
     }
 
     function stopListening() {
       logSpeech('stopListening')
       isExplicitlyListening = false
-      if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null }
-      if (recognition) {
-        recognition.onend = null
-        recognition.onerror = null
-        recognition.onresult = null
-        recognition.onstart = null
-        try { recognition.stop() } catch (e) {}
-        recognition = null
+
+      if (scriptNode) {
+        scriptNode.onaudioprocess = null
+        try { scriptNode.disconnect() } catch (e) {}
+        scriptNode = null
       }
+      if (micSource) {
+        try { micSource.disconnect() } catch (e) {}
+        micSource = null
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop())
+        micStream = null
+      }
+      if (voskRecognizer) {
+        try { voskRecognizer.remove() } catch (e) {}
+        voskRecognizer = null
+      }
+
       myInterimGroup = null
       myInterimCount = 0
       document.getElementById('btnListen').classList.remove('listening')
