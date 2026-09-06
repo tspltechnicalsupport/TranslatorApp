@@ -380,7 +380,8 @@
         scriptNode.onaudioprocess = (event) => {
           if (!voskRecognizer) return
           try {
-            voskRecognizer.acceptWaveform(event.inputBuffer)
+            const float32 = event.inputBuffer.getChannelData(0)
+            voskRecognizer.acceptWaveformFloat(float32, 16000)
           } catch (err) {
             logSpeech('acceptWaveform error: ' + err.message)
           }
